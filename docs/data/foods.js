@@ -25,7 +25,6 @@ window.MS_FOODS = [
   { id: 'abricot', name: 'Abricot', cat: 'fruits', kcal: 47, perish: 5, fresh: true, unit: 'g' },
   { id: 'peche', name: 'Pêche', cat: 'fruits', kcal: 42, perish: 6, fresh: true, unit: 'g' },
   { id: 'cerise', name: 'Cerise', cat: 'fruits', kcal: 50, perish: 6, fresh: true, unit: 'g' },
-  { id: 'figue', name: 'Figue', cat: 'fruits', kcal: 65, perish: 4, fresh: true, unit: 'g' },
   { id: 'fruit_rouge_mixte', name: 'Fruits rouges (melange)', cat: 'fruits', kcal: 45, perish: 3, fresh: true, unit: 'g' },
 
   // ---------------------------------------------------------------- LÉGUMES
@@ -82,7 +81,6 @@ window.MS_FOODS = [
 
   // ---------------------------------------------------------------- LÉGUMINEUSES & CÉRÉALES
   { id: 'lentilles', name: 'Lentilles (cuites)', cat: 'legumineuses', kcal: 116, perish: 365, fresh: false, unit: 'g' },
-  { id: 'lentilles_seches', name: 'Lentilles sèches', cat: 'legumineuses', kcal: 344, perish: 730, fresh: false, unit: 'g' },
   { id: 'haricots_rouges', name: 'Haricots rouges (cuits)', cat: 'legumineuses', kcal: 127, perish: 365, fresh: false, unit: 'g' },
   { id: 'pois_chiches', name: 'Pois chiches (cuits)', cat: 'legumineuses', kcal: 164, perish: 365, fresh: false, unit: 'g' },
   { id: 'quinoa', name: 'Quinoa (cuit)', cat: 'cereales', kcal: 120, perish: 365, fresh: false, unit: 'g' },
@@ -92,8 +90,6 @@ window.MS_FOODS = [
   { id: 'pates', name: 'Pâtes complètes (cuites)', cat: 'cereales', kcal: 131, perish: 365, fresh: false, unit: 'g' },
   { id: 'pates_blanches', name: 'Pâtes blanches (cuites)', cat: 'cereales', kcal: 158, perish: 365, fresh: false, unit: 'g' },
   { id: 'boulgour', name: 'Boulgour (cuit)', cat: 'cereales', kcal: 130, perish: 365, fresh: false, unit: 'g' },
-  { id: 'flocons_avoine', name: 'Flocons d’avoine', cat: 'cereales', kcal: 367, perish: 365, fresh: false, unit: 'g' },
-  { id: 'muesli', name: 'Muesli', cat: 'cereales', kcal: 380, perish: 365, fresh: false, unit: 'g' },
   { id: 'pain', name: 'Pain (baguette)', cat: 'cereales', kcal: 275, perish: 3, fresh: true, unit: 'g' },
   { id: 'pain_complet', name: 'Pain complet', cat: 'cereales', kcal: 247, perish: 5, fresh: true, unit: 'g' },
   { id: 'semoule', name: 'Semoule de blé (cuite)', cat: 'cereales', kcal: 100, perish: 365, fresh: false, unit: 'g' },
@@ -145,5 +141,125 @@ window.MS_FOODS = [
   { id: 'the', name: 'Thé', cat: 'boissons', kcal: 1, perish: null, fresh: false, unit: 'ml' },
   { id: 'jus_orange', name: 'Jus d’orange (100%)', cat: 'boissons', kcal: 45, perish: 7, fresh: true, unit: 'ml' },
   { id: 'biere', name: 'Bière', cat: 'boissons', kcal: 43, perish: null, fresh: false, unit: 'ml' },
-  { id: 'vin', name: 'Vin rouge', cat: 'boissons', kcal: 74, perish: null, fresh: false, unit: 'ml' }
+  { id: 'vin', name: 'Vin rouge', cat: 'boissons', kcal: 74, perish: null, fresh: false, unit: 'ml' },
+
+  /* ==================================================================
+     PRODUITS FRANÇAIS COURANTS
+     Compléments du catalogue ci-dessus : produits français courants
+     ================================================================== */
+
+  // ------------------------------------------------ CHARCUTERIE
+  { id: 'saucisse_strasbourg', name: 'Saucisse de Strasbourg', cat: 'proteines', kcal: 282, perish: 20, fresh: true, unit: 'g' },
+  { id: 'saucisse_toulouse', name: 'Saucisse de Toulouse', cat: 'proteines', kcal: 305, perish: 14, fresh: true, unit: 'g' },
+  { id: 'saucisse_poivre', name: 'Saucisse au poivre', cat: 'proteines', kcal: 310, perish: 14, fresh: true, unit: 'g' },
+  { id: 'andouillette', name: 'Andouillette', cat: 'proteines', kcal: 291, perish: 10, fresh: true, unit: 'g' },
+  { id: 'andouillette_vide', name: 'Andouillette de Troyes', cat: 'proteines', kcal: 229, perish: 10, fresh: true, unit: 'g' },
+  { id: 'merguez', name: 'Merguez', cat: 'proteines', kcal: 300, perish: 10, fresh: true, unit: 'g' },
+  { id: 'merguez_veau', name: 'Merguez de veau', cat: 'proteines', kcal: 262, perish: 10, fresh: true, unit: 'g' },
+  { id: 'chipolata', name: 'Chipolata', cat: 'proteines', kcal: 305, perish: 10, fresh: true, unit: 'g' },
+  { id: 'saucisson', name: 'Saucisson', cat: 'proteines', kcal: 380, perish: 60, fresh: false, unit: 'g' },
+  { id: 'jambon_Blanc', name: 'Jambon blanc', cat: 'proteines', kcal: 106, perish: 12, fresh: true, unit: 'g' },
+  { id: 'jambon_pays', name: 'Jambon de pays', cat: 'proteines', kcal: 140, perish: 30, fresh: true, unit: 'g' },
+  { id: 'jambon_cru', name: 'Jambon cru', cat: 'proteines', kcal: 145, perish: 25, fresh: true, unit: 'g' },
+  { id: 'coppa', name: 'Coppa', cat: 'proteines', kcal: 310, perish: 40, fresh: true, unit: 'g' },
+  { id: 'chorizo', name: 'Chorizo', cat: 'proteines', kcal: 455, perish: 90, fresh: false, unit: 'g' },
+  { id: 'terrine', name: 'Terrine', cat: 'proteines', kcal: 210, perish: 10, fresh: true, unit: 'g' },
+  { id: 'rillettes', name: 'Rillettes', cat: 'proteines', kcal: 470, perish: 25, fresh: false, unit: 'g' },
+  { id: 'foie_gras', name: 'Foie gras', cat: 'proteines', kcal: 460, perish: 20, fresh: true, unit: 'g' },
+  { id: 'bacon', name: 'Bacon', cat: 'proteines', kcal: 380, perish: 14, fresh: false, unit: 'g' },
+  { id: 'kebab', name: 'Kebab (poulet)', cat: 'proteines', kcal: 215, perish: 3, fresh: true, unit: 'g' },
+  { id: 'roti_porc', name: 'Rôti de porc', cat: 'proteines', kcal: 215, perish: 4, fresh: true, unit: 'g' },
+  { id: 'cotelette_porc', name: 'Côtelette de porc', cat: 'proteines', kcal: 240, perish: 4, fresh: true, unit: 'g' },
+  { id: 'bavette_boeuf', name: 'Bavette de bœuf', cat: 'proteines', kcal: 170, perish: 4, fresh: true, unit: 'g' },
+  { id: 'onlet_boeuf', name: 'Onlet de bœuf', cat: 'proteines', kcal: 250, perish: 4, fresh: true, unit: 'g' },
+  { id: 'côte_boeuf', name: 'Côte de bœuf', cat: 'proteines', kcal: 230, perish: 4, fresh: true, unit: 'g' },
+  { id: 'agneau_cotelette', name: 'Côtelette d’agneau', cat: 'proteines', kcal: 294, perish: 4, fresh: true, unit: 'g' },
+
+  // ------------------------------------------------ POISSON & FRUITS DE MER
+  { id: 'pave_saumon', name: 'Pavé de saumon', cat: 'proteines', kcal: 208, perish: 2, fresh: true, unit: 'g' },
+  { id: 'filet_cabillaud', name: 'Filet de cabillaud', cat: 'proteines', kcal: 82, perish: 2, fresh: true, unit: 'g' },
+  { id: 'filet_pangasius', name: 'Filet de pangasius', cat: 'proteines', kcal: 80, perish: 365, fresh: false, unit: 'g' },
+  { id: 'poulet_batonnet', name: 'Bâtonnets de poulet', cat: 'proteines', kcal: 150, perish: 365, fresh: false, unit: 'g' },
+  { id: 'surimi', name: 'Surimi', cat: 'proteines', kcal: 90, perish: 20, fresh: true, unit: 'g' },
+  { id: 'thon_fourre', name: 'Thon à la Devinaise', cat: 'proteines', kcal: 130, perish: 365, fresh: false, unit: 'g' },
+  { id: 'sardine', name: 'Sardines (boîte)', cat: 'proteines', kcal: 208, perish: 365, fresh: false, unit: 'g' },
+  { id: 'cabillaud_fume', name: 'Cabillaud fumé', cat: 'proteines', kcal: 85, perish: 20, fresh: true, unit: 'g' },
+  { id: 'gravlax', name: 'Gravlax de saumon', cat: 'proteines', kcal: 150, perish: 5, fresh: true, unit: 'g' },
+
+  // ------------------------------------------------ FROMAGES & LAITAGES
+  { id: 'camembert', name: 'Camembert', cat: 'laitages', kcal: 299, perish: 20, fresh: true, unit: 'g' },
+  { id: 'brie', name: 'Brie', cat: 'laitages', kcal: 353, perish: 14, fresh: true, unit: 'g' },
+  { id: 'emmental', name: 'Emmental', cat: 'laitages', kcal: 353, perish: 45, fresh: true, unit: 'g' },
+  { id: 'comte_rape', name: 'Comté râpé', cat: 'laitages', kcal: 369, perish: 45, fresh: true, unit: 'g' },
+  { id: 'raclette', name: 'Raclette', cat: 'laitages', kcal: 350, perish: 30, fresh: true, unit: 'g' },
+  { id: 'bleu', name: 'Bleu (fromage)', cat: 'laitages', kcal: 360, perish: 30, fresh: true, unit: 'g' },
+  { id: 'chevre_frais', name: 'Chèvre frais', cat: 'laitages', kcal: 264, perish: 14, fresh: true, unit: 'g' },
+  { id: 'tomme', name: 'Tomme de chèvre', cat: 'laitages', kcal: 340, perish: 21, fresh: true, unit: 'g' },
+  { id: 'yaourt_fruits', name: 'Yaourt aux fruits', cat: 'laitages', kcal: 100, perish: 14, fresh: true, unit: 'g' },
+  { id: 'petit_lait', name: 'Petit-lait (lait de whey)', cat: 'laitages', kcal: 45, perish: 365, fresh: false, unit: 'ml' },
+  { id: 'lait_chocolat', name: 'Lait chocolaté', cat: 'boissons', kcal: 68, perish: 10, fresh: true, unit: 'ml' },
+
+  // ------------------------------------------------ FRUITS & LÉGUMES
+  { id: 'fraise_barquette', name: 'Fraise barquette 250 g', cat: 'fruits', kcal: 32, perish: 3, fresh: true, unit: 'g' },
+  { id: 'salade_batavia', name: 'Salade batavia', cat: 'legumes', kcal: 15, perish: 5, fresh: true, unit: 'g' },
+  { id: 'salade_feuille', name: 'Jeunes pousses', cat: 'legumes', kcal: 20, perish: 3, fresh: true, unit: 'g' },
+  { id: 'endive', name: 'Endive', cat: 'legumes', kcal: 15, perish: 10, fresh: true, unit: 'g' },
+  { id: 'mache', name: 'Mâche', cat: 'legumes', kcal: 17, perish: 4, fresh: true, unit: 'g' },
+  { id: 'poireau', name: 'Poireau', cat: 'legumes', kcal: 35, perish: 10, fresh: true, unit: 'g' },
+  { id: 'poivron_jaune', name: 'Poivron jaune', cat: 'legumes', kcal: 31, perish: 9, fresh: true, unit: 'g' },
+  { id: 'aubergine', name: 'Aubergine', cat: 'legumes', kcal: 25, perish: 8, fresh: true, unit: 'g' },
+  { id: 'butternut', name: 'Butternut', cat: 'legumes', kcal: 45, perish: 21, fresh: true, unit: 'g' },
+  { id: 'potiron', name: 'Potiron', cat: 'legumes', kcal: 26, perish: 40, fresh: true, unit: 'g' },
+  { id: 'patate', name: 'Patate', cat: 'legumes', kcal: 75, perish: 21, fresh: true, unit: 'g' },
+  { id: 'oignon_jaune', name: 'Oignon jaune', cat: 'legumes', kcal: 40, perish: 30, fresh: true, unit: 'g' },
+  { id: 'echalote_pechee', name: 'Échalote (oignon nouveau)', cat: 'legumes', kcal: 73, perish: 20, fresh: true, unit: 'g' },
+  { id: 'persil_batonnets', name: 'Persil en bunches', cat: 'condiments', kcal: 36, perish: 7, fresh: true, unit: 'g' },
+  { id: 'citron_jaune', name: 'Citron jaune', cat: 'fruits', kcal: 29, perish: 21, fresh: true, unit: 'g' },
+  { id: 'figue', name: 'Figue', cat: 'fruits', kcal: 65, perish: 4, fresh: true, unit: 'g' },
+  { id: 'reine_claude', name: 'Reine-Claude', cat: 'fruits', kcal: 53, perish: 5, fresh: true, unit: 'g' },
+  { id: 'fruits_rouges_surgeles', name: 'Fruits rouges (surgelés)', cat: 'fruits', kcal: 50, perish: 365, fresh: false, unit: 'g' },
+
+  // ------------------------------------------------ ÉPICERIE SALÉE
+  { id: 'riz_aromatise', name: 'Riz parfumé (cuit)', cat: 'cereales', kcal: 130, perish: 365, fresh: false, unit: 'g' },
+  { id: 'couscous_cuit', name: 'Couscous (cuit)', cat: 'cereales', kcal: 112, perish: 365, fresh: false, unit: 'g' },
+  { id: 'polenta', name: 'Semoule de maïs (cuite)', cat: 'cereales', kcal: 98, perish: 365, fresh: false, unit: 'g' },
+  { id: 'lentilles_seches', name: 'Lentilles sèches', cat: 'legumineuses', kcal: 344, perish: 730, fresh: false, unit: 'g' },
+  { id: 'flocons_avoine', name: 'Flocons d’avoine', cat: 'cereales', kcal: 367, perish: 365, fresh: false, unit: 'g' },
+  { id: 'baguette', name: 'Baguette tradition', cat: 'cereales', kcal: 270, perish: 2, fresh: true, unit: 'g' },
+  { id: 'pain_campagne', name: 'Pain de campagne', cat: 'cereales', kcal: 259, perish: 4, fresh: true, unit: 'g' },
+  { id: 'pain_graine', name: 'Pain aux céréales', cat: 'cereales', kcal: 250, perish: 4, fresh: true, unit: 'g' },
+  { id: 'tartine', name: 'Tartines', cat: 'cereales', kcal: 400, perish: 180, fresh: false, unit: 'g' },
+  { id: 'biscuit', name: 'Biscuits (type Petit Beurre)', cat: 'sucrants', kcal: 500, perish: 180, fresh: false, unit: 'g' },
+  { id: 'muesli', name: 'Muesli', cat: 'cereales', kcal: 380, perish: 365, fresh: false, unit: 'g' },
+  { id: 'confiture_fraise', name: 'Confiture de fraises', cat: 'sucrants', kcal: 250, perish: 365, fresh: false, unit: 'g' },
+  { id: 'ketchup', name: 'Ketchup', cat: 'condiments', kcal: 85, perish: 365, fresh: false, unit: 'g' },
+  { id: 'mayonnaise', name: 'Mayonnaise', cat: 'condiments', kcal: 680, perish: 180, fresh: false, unit: 'g' },
+  { id: 'beurre_douceur', name: 'Beurre doux', cat: 'condiments', kcal: 745, perish: 40, fresh: true, unit: 'g' },
+  { id: 'bouillon_cube', name: 'Bouillon (cube)', cat: 'condiments', kcal: 10, perish: 730, fresh: false, unit: 'g' },
+  { id: 'huile_tourneesol', name: 'Huile de tournesol', cat: 'condiments', kcal: 884, perish: 730, fresh: false, unit: 'ml' },
+  { id: 'huile_olive_vierge', name: 'Huile d’olive vierge extra', cat: 'condiments', kcal: 884, perish: 730, fresh: false, unit: 'ml' },
+
+  // ------------------------------------------------ SURGELÉS
+  { id: 'haricots_verts_surgeles', name: 'Haricots verts surgelés', cat: 'legumes', kcal: 31, perish: 365, fresh: false, unit: 'g' },
+  { id: 'petits_pois_surgeles', name: 'Petits pois surgelés', cat: 'legumes', kcal: 75, perish: 365, fresh: false, unit: 'g' },
+  { id: 'carottes_surgelees', name: 'Carottes surgelées', cat: 'legumes', kcal: 41, perish: 365, fresh: false, unit: 'g' },
+  { id: 'frites_surgelees', name: 'Frites surgelées', cat: 'legumes', kcal: 312, perish: 365, fresh: false, unit: 'g' },
+  { id: 'nuggets_poulet', name: 'Nuggets de poulet', cat: 'proteines', kcal: 220, perish: 365, fresh: false, unit: 'g' },
+  { id: 'pizza_surgelee', name: 'Pizza surgelée', cat: 'cereales', kcal: 255, perish: 365, fresh: false, unit: 'g' },
+  { id: 'lasagnes', name: 'Lasagnes', cat: 'cereales', kcal: 135, perish: 365, fresh: false, unit: 'g' },
+  { id: 'gratins_surgele', name: 'Gratin de légumes surgelé', cat: 'legumes', kcal: 95, perish: 365, fresh: false, unit: 'g' },
+  { id: 'soupe_surgelee', name: 'Soupe surgelée', cat: 'legumes', kcal: 40, perish: 365, fresh: false, unit: 'ml' },
+
+  // ------------------------------------------------ PLATS PRÉPARÉS & BOISSONS
+  { id: 'pizza_fraiche', name: 'Pizza (part)', cat: 'cereales', kcal: 255, perish: 2, fresh: true, unit: 'g' },
+  { id: 'tartine_poulet', name: 'Tartine poulet crudités', cat: 'cereales', kcal: 160, perish: 2, fresh: true, unit: 'g' },
+  { id: 'salade_poulet', name: 'Salade composée poulet', cat: 'legumes', kcal: 110, perish: 2, fresh: true, unit: 'g' },
+  { id: 'taboule', name: 'Taboulé', cat: 'cereales', kcal: 150, perish: 3, fresh: true, unit: 'g' },
+  { id: 'salade_verte_pret', name: 'Salade verte (sachet)', cat: 'legumes', kcal: 20, perish: 4, fresh: true, unit: 'g' },
+  { id: 'coca', name: 'Coca-Cola', cat: 'boissons', kcal: 43, perish: null, fresh: false, unit: 'ml' },
+  { id: 'orangina', name: 'Orangina', cat: 'boissons', kcal: 45, perish: null, fresh: false, unit: 'ml' },
+  { id: 'limonade', name: 'Limonade', cat: 'boissons', kcal: 42, perish: null, fresh: false, unit: 'ml' },
+  { id: 'eau_petillante', name: 'Eau pétillante', cat: 'boissons', kcal: 0, perish: null, fresh: false, unit: 'ml' },
+  { id: 'jus_pomme', name: 'Jus de pomme', cat: 'boissons', kcal: 46, perish: 14, fresh: true, unit: 'ml' },
+  { id: 'vin_rose', name: 'Vin rosé', cat: 'boissons', kcal: 70, perish: null, fresh: false, unit: 'ml' }
 ];

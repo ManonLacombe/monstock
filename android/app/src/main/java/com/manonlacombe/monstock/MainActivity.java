@@ -2,7 +2,11 @@ package com.manonlacombe.monstock;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
+import android.webkit.PermissionRequest;
+import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
@@ -66,10 +70,43 @@ public class MainActivity extends Activity {
             }
         });
 
+        // La caméra est utilisée uniquement quand tu lances un scan de
+        // code-barres : on n'accorde la ressource que pour cette origine,
+        // et seulement si la permission a déjà été donnée à l'utilisateur.
+        web.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public void onPermissionRequest(final PermissionRequest request) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Uri origine = request.getOrigin();
+                        boolean autorisee = checkSelfPermission(
+                                android.Manifest.permission.CAMERA)
+                                == PackageManager.PERMISSION_GRANTED;
+                        boolean attendue = origine != null && origine.toString()
+                                .startsWith("https://appassets.androidplatform.net");
+                        if (autorisee && attendue) {
+                            request.grant(request.getResources());
+                        } else {
+                            request.deny();
+                        }
+                    }
+                });
+            }
+        });
+
         if (savedInstanceState != null) {
             web.restoreState(savedInstanceState);
         } else {
             web.loadUrl(URL_APP);
+        }
+
+        // La caméra sert uniquement au scan de code-barres. Si tu la refuses,
+        // tout le reste de l'application fonctionne sans elle.
+        if (checkSelfPermission(android.Manifest.permission.CAMERA)
+                != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(
+                    new String[]{android.Manifest.permission.CAMERA}, 1);
         }
     }
 

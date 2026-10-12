@@ -103,10 +103,34 @@ Plafond de calories (200–900), fréquence de la découverte (défaut **30 jour
 
 ## 🔐 Données et vie privée
 
-Toutes les données (stock, goûts, courses) sont stockées **uniquement sur ton
-appareil**, dans le `localStorage` du navigateur ou de l'APK.
-**Rien n'est envoyé sur un serveur**, l'application n'a **aucune permission réseau**.
-Tu peux exporter ta sauvegarde en un fichier JSON à tout moment.
+**Tes données restent sur ton appareil.** Stock, goûts, courses et
+recettes sont stockés **uniquement** dans le `localStorage` du navigateur ou
+de l'APK. Tu peux exporter ta sauvegarde en un fichier JSON à tout moment.
+
+L'application a **deux sorties réseau**, toutes deux sur demande explicite :
+
+| Fonction | Ce qui sort de l'appareil | Pourquoi |
+|---|---|---|
+| 📷 **Scan d'un code-barres** | le code-barres scanné | interroge la base ouverte [Open Food Facts](https://world.openfoodfacts.fr) pour récupérer nom, calories et magasin |
+| — rien d'autre | — | aucune statistics, aucun compte, aucun envoi automatique |
+
+La base Open Food Facts est un projet libre : elle ne reçoit **ni ton nom,
+ni tes autres données** — seulement le numéro que tu scannes.
+
+> **Pourquoi pas de recherche par nom ?** Les endpoints de recherche d'Open
+> Food Facts n'envoient pas d'en-tête CORS et renvoient des erreurs 503 : ils
+> sont inaccessibles depuis un navigateur. La lecture d'un produit par
+> code-barres, elle, fonctionne. Le catalogue intégré (226 aliments français)
+> couvre le quotidien hors ligne.
+
+### Permissions Android
+
+| Permission | Usage | Refusable ? |
+|---|---|---|
+| `INTERNET` | uniquement le scan de code-barres | non (demandée à l'installation) |
+| `CAMERA` | uniquement le scan de code-barres | **oui**, tout le reste fonctionne sans |
+
+Aucune donnée de localisation, de contacts ou de stockage n'est demandée.
 
 ---
 

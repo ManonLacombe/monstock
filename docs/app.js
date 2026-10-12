@@ -70,7 +70,13 @@
     condiments: 'Condiments', sucrants: 'Sucrants', boissons: 'Boissons'
   };
 
-  function aliment(id) { return PAR_ID[id] || null; }
+  /**
+   * Résout un aliment, qu'il vienne du catalogue intégré
+   * ou d'un produit trouvé en ligne et enregistré par l'utilisateur.
+   */
+  function aliment(id) {
+    return PAR_ID[id] || (etat.produits && etat.produits[id]) || null;
+  }
   function nomAliment(id) { var a = aliment(id); return a ? a.name : id; }
 
   /* ----------------------------------------------------------------- état */
@@ -81,6 +87,8 @@
       stock: [],
       prefs: {},           // foodId -> { statut, at, nbTests }
       courses: [],
+      produits: {},        // produits trouvés en ligne (Open Food Facts)
+      recettes: [],        // recettes écrites par l'utilisateur
       decouverte: { derniere: null, courante: null, historique: [] },
       reglages: { kcalMax: 500, intervalleJours: 30 }
     };
@@ -105,6 +113,8 @@
       if (Array.isArray(d[k])) base[k] = d[k];
     });
     if (d.prefs && typeof d.prefs === 'object') base.prefs = d.prefs;
+    if (d.produits && typeof d.produits === 'object') base.produits = d.produits;
+    if (Array.isArray(d.recettes)) base.recettes = d.recettes;
     if (d.decouverte && typeof d.decouverte === 'object') {
       base.decouverte.derniere = d.decouverte.derniere || null;
       base.decouverte.courante = d.decouverte.courante || null;
@@ -149,6 +159,7 @@
   }
 
   function fermerModale() {
+    arreterCamera();          // ne jamais laisser la caméra allumée
     el('modal-backdrop').hidden = true;
     el('modal-body').innerHTML = '';
     modaleOuverte = null;
@@ -250,8 +261,12 @@
     ouvrirModale(titre,
       '<div class="champ">' +
         '<label for="m-recherche">Aliment</label>' +
-        '<input id="m-recherche" type="search" placeholder="Rechercher un aliment…" autocomplete="off">' +
+        '<input id="m-recherche" type="search" placeholder="Rechercher dans le catalogue…" autocomplete="off">' +
         '<div class="suggestions" id="m-suggestions"></div>' +
+        '<button class="btn btn-accent btn-block" id="m-scanner" style="margin-top:10px">' +
+          '📷 Scanner un code-barres</button>' +
+        '<div class="aide">Le scan interroge la base ouverte Open Food Facts : ' +
+          'nom, calories et magasin s’ils sont connus. Rien d’autre n’est transmis.</div>' +
       '</div>' +
       '<div id="m-choisi"></div>' +
       '<div id="m-champs" ' + (f ? '' : 'hidden') + '>' +
@@ -282,44 +297,78 @@
     });
 
     rendreSuggestions('');
+    el('m-scanner').addEventListener('click', function () { scannerCodeBarres(produitScanne); });
     el('m-valider').addEventListener('click', function () { validerAjout(existant); });
   }
 
+  /* --------------------------------------------------------------------
+   * Suggestions : uniquement le catalogue intégré et les produits déjà
+   * enregistrés. Aucun appel réseau ici — la base en ligne n'est
+   * consultée que par scan volontaire d'un code-barres.
+   * ------------------------------------------------------------------ */
   function rendreSuggestions(terme) {
     var t = String(terme || '').trim().toLowerCase();
-    var res = CATALOGUE.filter(function (a) {
+
+    var locaux = CATALOGUE.concat(
+      Object.keys(etat.produits || {}).map(function (k) { return etat.produits[k]; })
+    ).filter(function (a) {
       if (!t) return true;
       return a.name.toLowerCase().indexOf(t) >= 0 ||
+        (a.marque || '').toLowerCase().indexOf(t) >= 0 ||
         (NOMS_CAT[a.cat] || '').toLowerCase().indexOf(t) >= 0;
     }).slice(0, 60);
 
-    el('m-suggestions').innerHTML = res.length
-      ? res.map(function (a) {
+    el('m-suggestions').innerHTML = locaux.length
+      ? locaux.map(function (a) {
           return '<div class="suggestion" data-food="' + a.id + '">' +
-            '<span>' + esc(a.name) + '</span>' +
-            '<span class="kcal-mini">' + a.kcal + ' kcal/100' + esc(a.unit) + '</span>' +
+            '<span>' + esc(a.name) + (a.magasin ? ' <span class="puce puce-neutre">' +
+              esc(a.magasin) + '</span>' : '') + '</span>' +
+            '<span class="kcal-mini">' + (a.kcal || '?') + ' kcal/100' + esc(a.unit) + '</span>' +
           '</div>';
         }).join('')
-      : '<div class="suggestion">Aucun aliment trouvé</div>';
+      : '<div class="suggestion" style="color:var(--gris)">' +
+        'Aucun aliment de ce nom dans le catalogue — utilise le scan.</div>';
 
     Array.prototype.forEach.call(el('m-suggestions').querySelectorAll('[data-food]'), function (n) {
-      n.addEventListener('click', function () {
-        foodChoisi = n.getAttribute('data-food');
-        el('m-recherche').value = nomAliment(foodChoisi);
-        el('m-suggestions').innerHTML = '';
-        el('m-champs').hidden = false;
-        afficherChoisi();
-        proposerDate();
-      });
+      n.addEventListener('click', function () { choisir(n.getAttribute('data-food')); });
     });
+  }
+
+  function choisir(id) {
+    foodChoisi = id;
+    el('m-recherche').value = nomAliment(id);
+    el('m-suggestions').innerHTML = '';
+    el('m-champs').hidden = false;
+    afficherChoisi();
+    proposerDate();
+  }
+
+  /** Récupère un produit scanné et le sélectionne dans le formulaire. */
+  function produitScanne(p) {
+    enregistrerProduit(p);
+    choisir(p.id);
+    // on propose le poids du conditionnement quand il est lisible
+    var m = p.conditionnement && String(p.conditionnement)
+      .replace(',', '.').match(/([\d]+(?:[.,]\d+)?)\s*(kg|g)\b/i);
+    if (m) {
+      var n = parseFloat(String(m[1]).replace(',', '.'));
+      var champ = el('m-qte');
+      if (champ) champ.value = Math.round(m[2].toLowerCase() === 'kg' ? n * 1000 : n);
+    }
   }
 
   function afficherChoisi() {
     var a = foodChoisi ? aliment(foodChoisi) : null;
     if (!a) { el('m-choisi').innerHTML = ''; return; }
+    var details = [];
+    if (a.marque) details.push(esc(a.marque));
+    if (a.magasin) details.push('vendu chez <strong>' + esc(a.magasin) + '</strong>');
+    if (a.conditionnement) details.push(esc(a.conditionnement));
     el('m-choisi').innerHTML = '<div class="carte" style="padding:10px;margin:10px 0 0;box-shadow:none;background:var(--vert-clair)">' +
       '<strong>' + esc(a.name) + '</strong> — ' + a.kcal + ' kcal/100' + esc(a.unit) +
-      (a.fresh ? ' · <span class="puce puce-ok">frais</span>' : '') + '</div>';
+      (a.fresh ? ' · <span class="puce puce-ok">frais</span>' : '') +
+      (details.length ? '<div style="font-size:.82rem;color:var(--gris);margin-top:3px">' +
+        details.join(' · ') + '</div>' : '') + '</div>';
   }
 
   /** Propose la date de péremption la plus vraisemblable pour un aliment frais. */
@@ -354,6 +403,463 @@
     rafraichir();
   }
 
+  /* ============================================ MES RECETTES (écriture libre) */
+
+  function recettesPersonnelles() { return etat.recettes || []; }
+
+  function trouverRecettePerso(id) {
+    return recettesPersonnelles().filter(function (r) { return r.id === id; })[0] || null;
+  }
+
+  /**
+   * Éditeur de recette personnelle. Les ingrédients sont choisis dans le
+   * catalogue (les calories se calculent alors automatiquement) ou en texte
+   * libre. La recette est enregistrée dans le même format que celles de la
+   * base, pour bénéficier du classement et de la détection d'ingrédients
+   * manquants.
+   */
+  function editerRecette(existante) {
+    var r = existante ? JSON.parse(JSON.stringify(existante)) : {
+      id: uid('r'), nom: '', desc: '', cat: 'perso', time: 20,
+      serv: 1, ing: [], etapes: [], perso: true
+    };
+
+    var ingredients = r.ing.map(function (i) { return { id: i.id, q: i.q, libre: i.libre || null }; });
+
+    function ligneIngredient(i, index) {
+      var a = i.id ? aliment(i.id) : null;
+      var nom = i.libre || (a ? a.name : '—');
+      var kcal = a ? Math.round(a.kcal * i.q / 100) : null;
+      return '<div class="ing-ligne" data-ligne="' + index + '">' +
+        '<span class="nom">' + esc(nom) +
+          (a ? '' : ' <span class="puce puce-neutre">texte libre</span>') + '</span>' +
+        (kcal !== null ? '<span class="kcal-mini">' + kcal + ' kcal</span>' : '') +
+        '<input type="number" min="0" step="1" value="' + i.q + '" data-qte>' +
+        '<span style="font-size:.8rem;color:var(--gris)">' +
+          esc(a ? a.unit : 'g') + '</span>' +
+        '<button class="btn btn-danger" data-suppr="' + index + '" ' +
+          'style="padding:6px 10px;font-size:.75rem">✕</button>' +
+      '</div>';
+    }
+
+    function corps() {
+      return '<div class="champ"><label for="r-nom">Nom de la recette</label>' +
+          '<input id="r-nom" type="text" value="' + esc(r.name) + '" ' +
+          'placeholder="Ex. Gratin decourgette de Mamie"></div>' +
+
+        '<div class="champ"><label for="r-desc">Description (facultatif)</label>' +
+          '<input id="r-desc" type="text" value="' + esc(r.desc || '') + '" ' +
+          'placeholder="Ce que cette recette a de particulier"></div>' +
+
+        '<div class="row-actions">' +
+          '<div style="flex:1"><label for="r-serv">Portions</label>' +
+            '<input id="r-serv" type="number" min="1" step="1" value="' + (r.serv || 1) + '"></div>' +
+          '<div style="flex:1"><label for="r-time">Durée (min)</label>' +
+            '<input id="r-time" type="number" min="1" step="5" value="' + (r.time || 20) + '"></div>' +
+        '</div>' +
+
+        '<label>Ingrédients</label>' +
+        '<div id="r-ings">' + (ingredients.length
+          ? ingredients.map(ligneIngredient).join('') : '') + '</div>' +
+        '<div id="r-ings-vide" class="aide" style="margin:6px 0 8px">' +
+          (ingredients.length ? '' : 'Aucun ingrédient pour l’instant.') + '</div>' +
+        '<input id="r-recherche" type="search" placeholder="Ajouter un ingrédient…" ' +
+          'autocomplete="off" style="margin-bottom:6px">' +
+        '<div class="suggestions" id="r-suggestions"></div>' +
+
+        '<label for="r-libre" style="margin-top:12px">Ingrédient hors catalogue</label>' +
+        '<div class="row-actions">' +
+          '<input id="r-libre" type="text" placeholder="Nom de l’ingrédient" style="flex:2">' +
+          '<input id="r-libre-qte" type="number" min="0" step="1" value="100" ' +
+            'style="flex:1" title="grammes">' +
+          '<button class="btn btn-ghost" id="r-ajoute-libre">Ajouter</button>' +
+        '</div>' +
+        '<div class="aide">Les ingrédients hors catalogue n’ont pas de calories : ' +
+          'elles ne seront pas comptées.</div>' +
+
+        '<label for="r-etapes" style="margin-top:14px">Préparation (une étape par ligne)</label>' +
+        '<textarea id="r-etapes" rows="5" ' +
+          'placeholder="Couper les légumes&#10;Faire revenir la viande&#10;Enfourner 30 min">' +
+          esc((r.steps || []).join('\n')) + '</textarea>' +
+
+        '<div id="r-total" style="margin:14px 0"></div>' +
+
+        '<button class="btn btn-primary btn-block" id="r-enregistrer">Enregistrer la recette</button>' +
+        (existante
+          ? '<button class="btn btn-danger btn-block" id="r-supprimer" style="margin-top:8px">' +
+            'Supprimer cette recette</button>' : '');
+    }
+
+    function recalculer() {
+      var tmp = { ing: ingredients.filter(function (i) { return i.id; }), serv: r.serv || 1 };
+      var total = kcalRecette(tmp);
+      var portion = total / (r.serv || 1);
+      var zone = el('r-total');
+      if (!zone) return;
+      zone.innerHTML = ingredients.length
+        ? '<div class="carte" style="box-shadow:none;background:' +
+          (portion < etat.reglages.kcalMax ? 'var(--vert-clair)' : 'var(--orange-clair)') + '">' +
+          '<strong>' + Math.round(portion) + ' kcal par portion</strong> — ' +
+          Math.round(total) + ' kcal au total' +
+          (portion >= etat.reglages.kcalMax
+            ? '<div style="font-size:.82rem;color:var(--orange);margin-top:4px">' +
+              'Au-dessus de ton plafond : la recette sera masquée dans le classement.</div>'
+            : '') + '</div>'
+        : '';
+    }
+
+    function redessinerIngredients() {
+      var zone = el('r-ings');
+      if (!zone) return;
+      zone.innerHTML = ingredients.map(ligneIngredient).join('');
+      el('r-ings-vide').hidden = ingredients.length > 0;
+      Array.prototype.forEach.call(zone.querySelectorAll('[data-suppr]'), function (b) {
+        b.addEventListener('click', function () {
+          ingredients.splice(Number(b.getAttribute('data-suppr')), 1);
+          redessinerIngredients(); recalculer();
+        });
+      });
+      Array.prototype.forEach.call(zone.querySelectorAll('[data-qte]'), function (n) {
+        n.addEventListener('change', function () {
+          var i = ingredients[Number(n.closest('[data-ligne]').getAttribute('data-ligne'))];
+          i.q = Math.max(0, Number(n.value) || 0);
+          redessinerIngredients(); recalculer();
+        });
+      });
+      recalculer();
+    }
+
+    ouvrirModale(existante ? 'Modifier ma recette' : 'Nouvelle recette', corps());
+    redessinerIngredients();
+
+    // --- recherche d'ingrédients dans le catalogue
+    var champIng = el('r-recherche');
+    var minuteur = null;
+    champIng.addEventListener('input', function () {
+      clearTimeout(minuteur);
+      var t = champIng.value.trim().toLowerCase();
+      var zone = el('r-suggestions');
+      if (t.length < 1) { zone.innerHTML = ''; return; }
+      var pool = CATALOGUE.concat(
+        Object.keys(etat.produits || {}).map(function (k) { return etat.produits[k]; })
+      ).filter(function (a) {
+        return a.name.toLowerCase().indexOf(t) >= 0 ||
+          (a.marque || '').toLowerCase().indexOf(t) >= 0;
+      }).slice(0, 40);
+
+      zone.innerHTML = pool.length
+        ? pool.map(function (a) {
+            return '<div class="suggestion" data-ajout="' + a.id + '">' +
+              '<span>' + esc(a.name) + (a.magasin ? ' <span class="puce puce-neutre">' +
+                esc(a.magasin) + '</span>' : '') + '</span>' +
+              '<span class="kcal-mini">' + a.kcal + ' kcal/100' + esc(a.unit) + '</span></div>';
+          }).join('')
+        : '<div class="suggestion">Aucun aliment du catalogue — utilise le champ « hors catalogue »</div>';
+
+      Array.prototype.forEach.call(zone.querySelectorAll('[data-ajout]'), function (n) {
+        n.addEventListener('click', function () {
+          var a = aliment(n.getAttribute('data-ajout'));
+          if (!a) return;
+          ingredients.push({ id: a.id, q: 100, libre: null });
+          champIng.value = '';
+          zone.innerHTML = '';
+          redessinerIngredients();
+        });
+      });
+    });
+
+    el('r-ajoute-libre').addEventListener('click', function () {
+      var nom = el('r-libre').value.trim();
+      if (!nom) { toast('Indique le nom de l’ingrédient'); return; }
+      ingredients.push({
+        id: 'libre_' + nom.toLowerCase().replace(/\s+/g, '_'),
+        q: Math.max(0, Number(el('r-libre-qte').value) || 0),
+        libre: nom
+      });
+      el('r-libre').value = '';
+      redessinerIngredients();
+    });
+
+    el('r-enregistrer').addEventListener('click', function () {
+      r.name = el('r-nom').value.trim();
+      if (!r.name) { toast('Donne un nom à ta recette'); return; }
+      if (!ingredients.length) { toast('Ajoute au moins un ingrédient'); return; }
+
+      r.desc = el('r-desc').value.trim();
+      r.serv = Math.max(1, Number(el('r-serv').value) || 1);
+      r.time = Math.max(1, Number(el('r-time').value) || 20);
+      r.ing = ingredients.filter(function (i) { return i.q > 0; });
+      r.steps = el('r-etapes').value.split('\n')
+        .map(function (l) { return l.trim(); }).filter(Boolean);
+      r.perso = true;
+      r.cat = 'perso';
+
+      // un ingrédient « texte libre » devient un produit à part entière,
+      // pour que les calories soient calculables si l'utilisateur les renseigne
+      // plus tard.
+      r.ing.forEach(function (i) {
+        if (i.libre && !aliment(i.id)) {
+          etat.produits[i.id] = {
+            id: i.id, name: i.libre, cat: 'condiments', kcal: 0, unit: 'g',
+            fresh: false, perish: null, libre: true
+          };
+        }
+      });
+
+      var i = recettesPersonnelles().findIndex(function (x) { return x.id === r.id; });
+      if (i >= 0) etat.recettes[i] = r; else etat.recettes.push(r);
+
+      sauver();
+      fermerModale();
+      filtreRecette = 'moi';
+      rafraichir();
+      toast(existante ? 'Recette mise à jour' : 'Recette ajoutée à tes recettes');
+    });
+
+    var btnSuppr = el('r-supprimer');
+    if (btnSuppr) {
+      btnSuppr.addEventListener('click', function () {
+        if (!confirm('Supprimer « ' + r.name + ' » ?')) return;
+        etat.recettes = recettesPersonnelles().filter(function (x) { return x.id !== r.id; });
+        sauver();
+        fermerModale();
+        rafraichir();
+        toast('Recette supprimée');
+      });
+    }
+  }
+
+  /* ==================================== BASE DE PRODUITS (code-barres) */
+
+  /* Open Food Facts : base libre de produits, dont de nombreux français.
+   *
+   * Seule la lecture d'un produit par code-barres est utilisée :
+   * les endpoints de recherche plein texte d'Open Food Facts n'envoient pas
+   * d'en-tête CORS et renvoient des 503, ils sont donc inaccessibles depuis
+   * un navigateur. L'API produit, elle, répond et autorise l'origine.
+   *
+   * C'est la seule source réseau de l'application : tout le reste (stock,
+   * goûts, courses, recettes) reste sur l'appareil, et rien n'est transmis
+   * en dehors du code-barres que tu scanninges.
+   */
+  var OFF_PRODUIT = 'https://world.openfoodfacts.org/api/v2/product/';
+
+  function offKcal(nutriments) {
+    if (!nutriments) return null;
+    var v = nutriments['energy-kcal_100g'];
+    if (typeof v === 'number' && v > 0) return Math.round(v);
+    var kj = nutriments['energy_100g'];
+    if (typeof kj === 'number' && kj > 0) return Math.round(kj / 4.184);
+    return null;
+  }
+
+  /** Devine une catégorie à partir des tags Open Food Facts. */
+  function offCategorie(tags) {
+    var t = (tags || []).join(' ');
+    if (/saucisse|charcuterie|jambon|lardon|viande|poisson|meat|sausage/.test(t)) return 'proteines';
+    if (/fromage|lait|yaourt|creme|dairy/.test(t)) return 'laitages';
+    if (/pain|cereale|riz|pate|farine|biscuit|cake|patisserie|pizza/.test(t)) return 'cereales';
+    if (/fruit/.test(t)) return 'fruits';
+    if (/legume|vegetable|salade/.test(t)) return 'legumes';
+    if (/boisson|drink|eau|water|jus|limonade/.test(t)) return 'boissons';
+    if (/chocolat|sucre|confiture|sirop/.test(t)) return 'sucrants';
+    return 'condiments';
+  }
+
+  function offEnProduit(p) {
+    var nom = (p.product_name || p.generic_name || '').trim();
+    var kcal = offKcal(p.nutriments);
+    if (!nom) return null;   // sans nom, inutile
+
+    return {
+      id: 'off_' + (p.code || uid('p')),
+      name: nom,
+      cat: offCategorie(p.categories_tags),
+      // kcal à 0 si la fiche n'a pas la valeur : l'aliment reste sélectionnable,
+      // il ne simplement ne comptera pas dans les totaux.
+      kcal: kcal === null ? 0 : kcal,
+      unit: 'g',
+      // un produit emballé n'est pas « frais » : la priorité aux
+      // péérissables ne doit pas être faussée par une conserverie
+      fresh: false,
+      perish: null,
+      marque: (p.brands || '').split(',')[0].trim() || null,
+      magasin: (p.stores || '').split(',')[0].trim() || null,
+      conditionnement: p.quantity || null,
+      off: true
+    };
+  }
+
+  /** Interroge Open Food Facts à partir d'un code-barres (EAN/UPC). */
+  function chercherParCode(code, rappel) {
+    var propre = String(code || '').replace(/\D/g, '');
+    if (propre.length < 8) { rappel(null, 'Code-barres illisible'); return; }
+
+    fetch(OFF_PRODUIT + propre + '.json')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var p = d && (d.product || d);
+        if (!p || !p.product_name) {
+          rappel(null, 'Produit inconnu de la base');
+          return;
+        }
+        var produit = offEnProduit(p);
+        if (!produit) { rappel(null, 'Produit illisible'); return; }
+        if (!offKcal(p.nutriments)) produit.sansCalories = true;
+        rappel(produit, null);
+      })
+      .catch(function () {
+        rappel(null, 'Recherche en ligne indisponible (pas de réseau ?)');
+      });
+  }
+
+  /** Enregistre un produit trouvé en ligne pour pouvoir le réutiliser. */
+  function enregistrerProduit(p) {
+    etat.produits[p.id] = p;
+    sauver();
+    return p.id;
+  }
+
+  /* --------------------------------------------------------- scanner */
+
+  var fluxVideo = null;
+
+  function arreterCamera() {
+    if (fluxVideo) {
+      fluxVideo.getTracks().forEach(function (t) { t.stop(); });
+      fluxVideo = null;
+    }
+  }
+
+  /**
+   * Lit un code-barres avec l'appareil photo.
+   * Utilise l'API native BarcodeDetector quand elle existe (Android, Chrome),
+   * sinon jsQR embarqué.
+   */
+  function scannerCodeBarres(rappel) {
+    var zone = document.createElement('div');
+    zone.innerHTML =
+      '<div class="scanner"><video id="scan-video" playsinline muted ' +
+        'style="width:100%;border-radius:12px;background:#000"></video>' +
+        '<div class="scan-cadre"></div></div>' +
+      '<p class="aide" id="scan-msg">Cadre le code-barres dans le rectangle. ' +
+        'Le scan est automatique.</p>';
+
+    ouvrirModale('Scanner un code-barres', '');
+    var corps = el('modal-body');
+    corps.innerHTML = '';
+    corps.appendChild(zone);
+
+    var msg = el('scan-msg');
+    var video = el('scan-video');
+    var arrete = false;
+
+    function fini(code) {
+      if (arrete) return;
+      arrete = true;
+      arreterCamera();
+      msg.textContent = 'Code ' + code + ' — recherche du produit…';
+      chercherParCode(code, function (produit, erreur) {
+        if (produit) {
+          fermerModale();
+          rappel(produit);
+        } else {
+          msg.innerHTML = '<strong style="color:var(--rouge)">' + esc(erreur) + '</strong><br>' +
+            '<button class="btn btn-ghost" id="scan-retry" style="margin-top:8px">Réessayer</button>';
+          var r = el('scan-retry');
+          if (r) r.addEventListener('click', function () {
+            fermerModale();
+            scannerCodeBarres(rappel);
+          });
+        }
+      });
+    }
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      msg.innerHTML = '<strong style="color:var(--rouge)">Caméra indisponible</strong><br>' +
+        'Utilise un navigateur récent, ou ajoute l’aliment à la main.';
+      return;
+    }
+
+    navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment' }
+    }).then(function (flux) {
+      if (arrete) { flux.getTracks().forEach(function (t) { t.stop(); }); return; }
+      fluxVideo = flux;
+      video.srcObject = flux;
+      video.play();
+
+      if ('BarcodeDetector' in window) {
+        // API native : légère et précise
+        var detecteur = new window.BarcodeDetector({
+          formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128']
+        });
+        var boucler = function () {
+          if (arrete) return;
+          detecteur.detect(video).then(function (codes) {
+            if (codes && codes.length) fini(codes[0].rawValue);
+            else requestAnimationFrame(boucler);
+          }).catch(function () { requestAnimationFrame(boucler); });
+        };
+        requestAnimationFrame(boucler);
+      } else {
+        // Repli : jsQR, embarqué dans le dépôt
+        if (typeof window.jsQR !== 'function') {
+          chargerJsQR(function (charge) {
+            if (!charge) {
+              msg.innerHTML = '<strong style="color:var(--rouge)">Décodeur indisponible</strong>';
+              return;
+            }
+            boucleJsQR(video, fini, function (e) {
+              if (!arrete) msg.innerHTML = '<strong style="color:var(--rouge)">' +
+                'Caméra inaccessible</strong><br>Autorise la caméra dans les réglages du navigateur.';
+            });
+          });
+        } else {
+          boucleJsQR(video, fini, function (e) {
+            if (!arrete) msg.innerHTML = '<strong style="color:var(--rouge)">' +
+              'Caméra inaccessible</strong><br>Autorise la caméra dans les réglages du navigateur.';
+          });
+        }
+      }
+    }).catch(function (e) {
+      msg.innerHTML = '<strong style="color:var(--rouge)">Caméra refusée</strong><br>' +
+        'Autorise la caméra pour ce site, ou ajoute l’aliment à la main.';
+    });
+  }
+
+  var jsqrCharge = null;
+  function chargerJsQR(rappel) {
+    if (jsqrCharge) { rappel(jsqrCharge); return; }
+    var s = document.createElement('script');
+    s.src = 'js/jsQR.js';
+    s.onload = function () { jsqrCharge = true; rappel(true); };
+    s.onerror = function () { jsqrCharge = false; rappel(false); };
+    document.head.appendChild(s);
+  }
+
+  /** Boucle de décodage jsQR à partir d'un flux vidéo. */
+  function boucleJsQR(video, fini, echec) {
+    var canvas = document.createElement('canvas');
+    var ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+    var boucler = function () {
+      if (!fluxVideo) return;
+      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        try {
+          var img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          var code = window.jsQR(img.data, img.width, img.height);
+          if (code && code.data) { fini(code.data); return; }
+        } catch (e) { echec(e); return; }
+      }
+      requestAnimationFrame(boucler);
+    };
+    requestAnimationFrame(boucler);
+  }
+
   /* ========================================================== RECETTES */
 
   function kcalRecette(r) {
@@ -364,6 +870,11 @@
   }
 
   function kcalParPortion(r) { return kcalRecette(r) / (r.serv || 1); }
+
+  /** Recettes intégrées + recettes écrites par l'utilisateur. */
+  function toutesRecettes() {
+    return RECETTES.concat(etat.recettes || []);
+  }
 
   function statutDe(foodId) {
     var p = etat.prefs[foodId];
@@ -438,9 +949,14 @@
   var filtreRecette = 'tout';
 
   function rendreRecettes() {
-    var analyses = RECETTES.map(function (r) { return analyserRecette(r); })
+    var analyses = toutesRecettes().map(function (r) { return analyserRecette(r); })
       .filter(function (a) { return !a.exclue; })
-      .filter(function (a) { return a.kcal < etat.reglages.kcalMax; });
+      .filter(function (a) {
+        // Le plafond ne sert qu'à trier les suggestions automatiques.
+        // Tes propres recettes restent toujours visibles, même au-dessus :
+        // elles doivent être modifiables, pas disparaître.
+        return a.kcal < etat.reglages.kcalMax || filtreRecette === 'moi';
+      });
 
     if (filtreRecette === 'complet') {
       analyses = analyses.filter(function (a) { return a.nbManquants === 0; });
@@ -448,18 +964,23 @@
       analyses = analyses.filter(function (a) { return a.urgents > 0; });
     } else if (filtreRecette === 'aime') {
       analyses = analyses.filter(function (a) { return a.aimes > 0; });
+    } else if (filtreRecette === 'moi') {
+      analyses = analyses.filter(function (a) { return a.recette.perso; });
     }
 
     analyses.sort(function (a, b) { return b.score - a.score; });
 
     var f = el('recipe-filters');
     var defs = [
-      ['tout', 'Toutes'], ['complet', 'Sans manque'], ['urgent', 'À sauver'], ['aime', 'Tu aimes ça']
+      ['tout', 'Toutes'], ['complet', 'Sans manque'], ['urgent', 'À sauver'],
+      ['aime', 'Tu aimes ça'], ['moi', 'Mes recettes (' + (etat.recettes || []).length + ')']
     ];
-    f.innerHTML = defs.map(function (d) {
-      return '<button class="filtre' + (filtreRecette === d[0] ? ' is-actif' : '') +
-        '" data-filtre="' + d[0] + '">' + d[1] + '</button>';
-    }).join('');
+    f.innerHTML = '<button class="filtre" id="btn-recette-perso">+ Ma recette</button>' +
+      defs.map(function (d) {
+        return '<button class="filtre' + (filtreRecette === d[0] ? ' is-actif' : '') +
+          '" data-filtre="' + d[0] + '">' + d[1] + '</button>';
+      }).join('');
+    el('btn-recette-perso').addEventListener('click', function () { editerRecette(null); });
     Array.prototype.forEach.call(f.querySelectorAll('[data-filtre]'), function (n) {
       n.addEventListener('click', function () {
         filtreRecette = n.getAttribute('data-filtre');
@@ -507,7 +1028,7 @@
   /* ------------------------------------------- fiche recette + « tu l'as ? » */
 
   function ouvrirRecette(id) {
-    var r = RECETTES.filter(function (x) { return x.id === id; })[0];
+    var r = toutesRecettes().filter(function (x) { return x.id === id; })[0];
     if (!r) return;
     var a = analyserRecette(r);
     var stock = totalStock();
@@ -573,6 +1094,8 @@
           'J’ai cuisiné — sortir du stock</button>' +
         '<button class="btn btn-ghost" data-act="tout-acheter" data-id="' + r.id + '">' +
           'Mettre les manques en courses</button>' +
+        (r.perso ? '<button class="btn btn-ghost" data-act="modifier-recette" data-id="' + r.id +
+          '">Modifier ma recette</button>' : '') +
       '</div>';
 
     ouvrirModale(r.name, corps);
@@ -611,6 +1134,13 @@
     corps_.querySelector('[data-act="cuisiner"]').addEventListener('click', function () {
       consommerRecette(r);
     });
+    var btnModif = corps_.querySelector('[data-act="modifier-recette"]');
+    if (btnModif) {
+      btnModif.addEventListener('click', function () {
+        var perso = trouverRecettePerso(r.id);
+        if (perso) editerRecette(perso);
+      });
+    }
     corps_.querySelector('[data-act="tout-acheter"]').addEventListener('click', function () {
       var n = 0;
       analyserRecette(r).manquants.forEach(function (i) {
@@ -664,7 +1194,7 @@
 
   /** Recettes contenant un aliment donné, les plus légères d'abord. */
   function recettesAvec(foodId) {
-    return RECETTES
+    return toutesRecettes()
       .filter(function (r) {
         if (kcalParPortion(r) >= etat.reglages.kcalMax) return false;
         return r.ing.some(function (i) { return i.id === foodId; });
@@ -756,7 +1286,7 @@
     if (d) {
       badge.hidden = false; badge.textContent = '1';
       var a = aliment(d.foodId);
-      var r = d.recipeId ? RECETTES.filter(function (x) { return x.id === d.recipeId; })[0] : null;
+      var r = d.recipeId ? toutesRecettes().filter(function (x) { return x.id === d.recipeId; })[0] : null;
       var kcal = r ? Math.round(kcalParPortion(r)) : null;
       ens.innerHTML =
         '<div class="carte" style="background:linear-gradient(135deg,#fff8e1,#fff);border-left:5px solid var(--orange)">' +
@@ -1063,6 +1593,9 @@
       t.classList.toggle('is-active', t.getAttribute('data-screen') === ecran);
     });
     el('screen-title').textContent = TITRES[ecran];
+    // on relit les données : un ingrédient peut avoir été ajouté à la liste
+    // de courses ou au stock depuis une autre fiche
+    rafraichir();
     window.scrollTo(0, 0);
   }
 

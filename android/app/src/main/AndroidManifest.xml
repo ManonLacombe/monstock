@@ -1,7 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Aucune permission : tout est stocké localement, aucun réseau requis. -->
+    <!-- Seul accès réseau de l'application : la recherche de produits dans la
+         base ouverte Open Food Facts, déclenchée uniquement quand tu tapes
+         un nom. Aucune donnée personnelle n'est transmise : stock, goûts,
+         courses et recettes restent sur l'appareil. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Caméra : uniquement pour scanner un code-barres. L'application
+         fonctionne entièrement sans elle. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <application
         android:allowBackup="true"
