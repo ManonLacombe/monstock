@@ -20,6 +20,9 @@ Deux versions, **un seul code** :
 Scanner le QR avec l'appareil photo. Sur mobile, menu du navigateur →
 **Ajouter à l'écran d'accueil** : l'application s'installe et fonctionne hors ligne.
 
+Le dossier `web/` du dépôt est publié automatiquement sur GitHub Pages par
+`.github/workflows/pages.yml` à chaque modification de `web/`.
+
 ### Installer l'APK Android
 1. Scanner le QR code « Android » avec l'appareil photo, puis ouvrir le fichier téléchargé.
 2. Paramètres → Applications → **Accès aux applications spéciales** →
