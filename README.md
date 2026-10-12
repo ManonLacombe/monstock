@@ -13,8 +13,10 @@ Deux versions, **un seul code** :
 
 | Version web | Application Android |
 |---|---|
-| ![QR web](docs/qrcode-web.png) | ![QR APK](docs/qrcode-apk.png) |
-| <https://manonlacombe.github.io/monstock/> | APK signé, à installer depuis le téléphone |
+| ![QR web](qrcode-web.png) | ![QR APK](qrcode-apk.png) |
+| <https://manonlacombe.github.io/monstock/> | [Release v1.0.0](https://github.com/ManonLacombe/monstock/releases/tag/v1.0.0) |
+
+Code : <https://github.com/ManonLacombe/monstock>
 
 ### Installer la version web
 Scanner le QR avec l'appareil photo. Sur mobile, menu du navigateur →
