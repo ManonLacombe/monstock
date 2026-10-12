@@ -1,0 +1,1188 @@
+/* ==========================================================================
+   MonStock — logique applicative
+   Données 100 % locales (localStorage). Aucune donnée envoyée sur le réseau.
+   ========================================================================== */
+(function () {
+  'use strict';
+
+  var CLE = 'monstock.v1';
+
+  /* ------------------------------------------------------------------ utils */
+
+  function el(id) { return document.getElementById(id); }
+
+  function esc(v) {
+    return String(v == null ? '' : v)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function aujourdhui() { return versISO(new Date()); }
+
+  function versISO(d) {
+    return d.getFullYear() + '-' +
+      String(d.getMonth() + 1).padStart(2, '0') + '-' +
+      String(d.getDate()).padStart(2, '0');
+  }
+
+  function depuisISO(iso) {
+    var p = String(iso).split('-');
+    return new Date(+p[0], +p[1] - 1, +p[2]);
+  }
+
+  /** Nombre de jours entiers entre aujourd'hui et une date (négatif = passé). */
+  function joursRestants(iso) {
+    if (!iso) return null;
+    var a = depuisISO(aujourdhui());
+    var b = depuisISO(iso);
+    return Math.round((b - a) / 86400000);
+  }
+
+  function formaterDate(iso) {
+    if (!iso) return '';
+    var d = depuisISO(iso);
+    return d.getDate() + ' ' + ['janv', 'févr', 'mars', 'avr', 'mai', 'juin',
+      'juil', 'août', 'sept', 'oct', 'nov', 'déc'][d.getMonth()];
+  }
+
+  /** « 12 », « 1,5 », « 0,25 » */
+  function fmtQte(n) {
+    if (n == null) return '';
+    if (n >= 100) return String(Math.round(n));
+    if (Number.isInteger(n)) return String(n);
+    return String(Math.round(n * 100) / 100).replace('.', ',');
+  }
+
+  function uid(p) {
+    return p + '_' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
+  }
+
+  /* ------------------------------------------------------------- catalogue */
+
+  var CATALOGUE = window.MS_FOODS || [];
+  var RECETTES = window.MS_RECIPES || [];
+  var PAR_ID = {};
+  CATALOGUE.forEach(function (a) { PAR_ID[a.id] = a; });
+
+  var NOMS_CAT = {
+    fruits: 'Fruits', legumes: 'Légumes', proteines: 'Protéines',
+    legumineuses: 'Légumineuses', cereales: 'Céréales', laitages: 'Produits laitiers',
+    condiments: 'Condiments', sucrants: 'Sucrants', boissons: 'Boissons'
+  };
+
+  function aliment(id) { return PAR_ID[id] || null; }
+  function nomAliment(id) { var a = aliment(id); return a ? a.name : id; }
+
+  /* ----------------------------------------------------------------- état */
+
+  function etatVierge() {
+    return {
+      version: 1,
+      stock: [],
+      prefs: {},           // foodId -> { statut, at, nbTests }
+      courses: [],
+      decouverte: { derniere: null, courante: null, historique: [] },
+      reglages: { kcalMax: 500, intervalleJours: 30 }
+    };
+  }
+
+  var etat = etatVierge();
+
+  function charger() {
+    try {
+      var brut = localStorage.getItem(CLE);
+      if (!brut) return;
+      var d = JSON.parse(brut);
+      etat = fusionner(etatVierge(), d);
+    } catch (e) {
+      console.warn('Stockage illisible, réinitialisation.', e);
+    }
+  }
+
+  function fusionner(base, d) {
+    if (!d || typeof d !== 'object') return base;
+    ['stock', 'courses'].forEach(function (k) {
+      if (Array.isArray(d[k])) base[k] = d[k];
+    });
+    if (d.prefs && typeof d.prefs === 'object') base.prefs = d.prefs;
+    if (d.decouverte && typeof d.decouverte === 'object') {
+      base.decouverte.derniere = d.decouverte.derniere || null;
+      base.decouverte.courante = d.decouverte.courante || null;
+      base.decouverte.historique = Array.isArray(d.decouverte.historique)
+        ? d.decouverte.historique : [];
+    }
+    if (d.reglages && typeof d.reglages === 'object') {
+      base.reglages.kcalMax = Number(d.reglages.kcalMax) || 500;
+      base.reglages.intervalleJours = Number(d.reglages.intervalleJours) || 30;
+    }
+    return base;
+  }
+
+  function sauver() {
+    try {
+      localStorage.setItem(CLE, JSON.stringify(etat));
+    } catch (e) {
+      toast('Sauvegarde impossible (stockage plein ?)');
+    }
+  }
+
+  /* ---------------------------------------------------------------- toast */
+
+  var toastTimer = null;
+  function toast(msg) {
+    var t = el('toast');
+    t.textContent = msg;
+    t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.hidden = true; }, 2600);
+  }
+
+  /* --------------------------------------------------------------- modale */
+
+  var modaleOuverte = null;
+
+  function ouvrirModale(titre, html) {
+    el('modal-title').textContent = titre;
+    el('modal-body').innerHTML = html;
+    el('modal-backdrop').hidden = false;
+    modaleOuverte = true;
+  }
+
+  function fermerModale() {
+    el('modal-backdrop').hidden = true;
+    el('modal-body').innerHTML = '';
+    modaleOuverte = null;
+  }
+
+  /* ================================================================ STOCK */
+
+  /** Tri par urgence : périmé, puis le plus proche, puis sans date. */
+  function stockTrie() {
+    return etat.stock.slice().sort(function (a, b) {
+      var ja = joursRestants(a.expiry), jb = joursRestants(b.expiry);
+      if (ja === null && jb === null) return a.addedAt < b.addedAt ? 1 : -1;
+      if (ja === null) return 1;
+      if (jb === null) return -1;
+      if (ja !== jb) return ja - jb;
+      return a.addedAt < b.addedAt ? 1 : -1;
+    });
+  }
+
+  function totalStock() {
+    var parId = {};
+    etat.stock.forEach(function (l) {
+      parId[l.foodId] = (parId[l.foodId] || 0) + (Number(l.qty) || 0);
+    });
+    return parId;
+  }
+
+  function puceUrgence(expiry) {
+    var j = joursRestants(expiry);
+    if (j === null) return '<span class="puce puce-neutre">sans date</span>';
+    if (j < 0) return '<span class="puce puce-expire">Périmé (' + Math.abs(j) + ' j)</span>';
+    if (j === 0) return '<span class="puce puce-expire">À consommer aujourd’hui</span>';
+    if (j <= 3) return '<span class="puce puce-bientot">J-' + j + '</span>';
+    if (j <= 7) return '<span class="puce puce-bientot">Dans ' + j + ' jours</span>';
+    return '<span class="puce puce-ok">' + formaterDate(expiry) + '</span>';
+  }
+
+  function rendreStock() {
+    var liste = stockTrie();
+    var ens = el('stock-list');
+
+    // Banderoles d'alerte
+    var perimes = liste.filter(function (l) { var j = joursRestants(l.expiry); return j !== null && j < 0; }).length;
+    var urgents = liste.filter(function (l) { var j = joursRestants(l.expiry); return j !== null && j >= 0 && j <= 2; }).length;
+    var b = '';
+    if (perimes > 0) b += '<div class="banner alerte">⚠️ <strong>' + perimes +
+      '</strong> aliment(s) périmé(s). Tu peux encore songer à les jeter.</div>';
+    if (urgents > 0) b += '<div class="banner attention">⏳ <strong>' + urgents +
+      '</strong> aliment(s) à consommer dans les 3 jours.</div>';
+    if (liste.length === 0) b += '<div class="banner ok">Ton frigo est vide. Ajoute tes premiers aliments pour recevoir des recettes.</div>';
+    el('stock-banner').innerHTML = b;
+
+    if (liste.length === 0) {
+      ens.innerHTML = '<div class="vide"><span class="grand">🧊</span>Aucun aliment en stock.<br>Ajoute ce que tu as chez toi.</div>';
+      return;
+    }
+
+    ens.innerHTML = liste.map(function (l) {
+      var a = aliment(l.foodId);
+      var urgent = joursRestants(l.expiry);
+      var accent = (urgent !== null && urgent <= 2) ? ' style="border-left:4px solid ' +
+        (urgent < 0 ? 'var(--rouge)' : 'var(--orange)') + '"' : '';
+      return '<div class="carte"' + accent + '>' +
+        '<div class="ligne">' +
+          '<div class="croissance">' +
+            '<strong>' + esc(a ? a.name : l.foodId) + '</strong>' +
+            '<span style="font-size:.82rem;color:var(--gris)">' + fmtQte(l.qty) + ' ' +
+            esc(a ? a.unit : 'g') + ' · ajouté le ' + formaterDate(l.addedAt) + '</span>' +
+          '</div>' +
+          '<div style="text-align:right">' + puceUrgence(l.expiry) + '</div>' +
+        '</div>' +
+        '<div class="actions-manquant">' +
+          '<button class="btn btn-ghost" data-act="ajuster" data-sid="' + l.sid + '">Modifier</button>' +
+          '<button class="btn btn-danger" data-act="retirer" data-sid="' + l.sid + '">Retirer</button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function ajouterAuStock(foodId, qte, expiry) {
+    etat.stock.push({
+      sid: uid('s'), foodId: foodId, qty: Number(qte) || 0,
+      expiry: expiry || null, addedAt: aujourdhui()
+    });
+    sauver();
+  }
+
+  /* ----------------------------------------------- modale ajout / édition */
+
+  var foodChoisi = null;
+
+  function modaleAjoutAliment(existant) {
+    foodChoisi = existant ? existant.foodId : null;
+    var f = foodChoisi ? aliment(foodChoisi) : null;
+    var titre = existant ? 'Modifier l’aliment' : 'Ajouter un aliment';
+    var valeurQte = existant ? existant.qty : '';
+    var valeurExp = existant ? (existant.expiry || '') : '';
+
+    ouvrirModale(titre,
+      '<div class="champ">' +
+        '<label for="m-recherche">Aliment</label>' +
+        '<input id="m-recherche" type="search" placeholder="Rechercher un aliment…" autocomplete="off">' +
+        '<div class="suggestions" id="m-suggestions"></div>' +
+      '</div>' +
+      '<div id="m-choisi"></div>' +
+      '<div id="m-champs" ' + (f ? '' : 'hidden') + '>' +
+        '<div class="champ">' +
+          '<label for="m-qte">Quantité (grammes ou ml)</label>' +
+          '<input id="m-qte" type="number" inputmode="decimal" min="0" step="1" value="' + valeurQte + '">' +
+        '</div>' +
+        '<div class="champ">' +
+          '<label for="m-exp">Date de péremption</label>' +
+          '<input id="m-exp" type="date" value="' + valeurExp + '">' +
+          '<div class="aide">Laissez vide si l’aliment ne périme pas (sel, sucre…). ' +
+          'Pour un aliment frais, la date la plus probable est proposée toute seule.</div>' +
+        '</div>' +
+        '<button class="btn btn-primary btn-block" id="m-valider">' +
+          (existant ? 'Enregistrer' : 'Ajouter au stock') + '</button>' +
+      '</div>');
+
+    var champRecherche = el('m-recherche');
+    if (f) champRecherche.value = f.name;
+
+    afficherChoisi();
+
+    champRecherche.addEventListener('input', function () {
+      foodChoisi = null;
+      el('m-champs').hidden = true;
+      el('m-choisi').innerHTML = '';
+      rendreSuggestions(champRecherche.value);
+    });
+
+    rendreSuggestions('');
+    el('m-valider').addEventListener('click', function () { validerAjout(existant); });
+  }
+
+  function rendreSuggestions(terme) {
+    var t = String(terme || '').trim().toLowerCase();
+    var res = CATALOGUE.filter(function (a) {
+      if (!t) return true;
+      return a.name.toLowerCase().indexOf(t) >= 0 ||
+        (NOMS_CAT[a.cat] || '').toLowerCase().indexOf(t) >= 0;
+    }).slice(0, 60);
+
+    el('m-suggestions').innerHTML = res.length
+      ? res.map(function (a) {
+          return '<div class="suggestion" data-food="' + a.id + '">' +
+            '<span>' + esc(a.name) + '</span>' +
+            '<span class="kcal-mini">' + a.kcal + ' kcal/100' + esc(a.unit) + '</span>' +
+          '</div>';
+        }).join('')
+      : '<div class="suggestion">Aucun aliment trouvé</div>';
+
+    Array.prototype.forEach.call(el('m-suggestions').querySelectorAll('[data-food]'), function (n) {
+      n.addEventListener('click', function () {
+        foodChoisi = n.getAttribute('data-food');
+        el('m-recherche').value = nomAliment(foodChoisi);
+        el('m-suggestions').innerHTML = '';
+        el('m-champs').hidden = false;
+        afficherChoisi();
+        proposerDate();
+      });
+    });
+  }
+
+  function afficherChoisi() {
+    var a = foodChoisi ? aliment(foodChoisi) : null;
+    if (!a) { el('m-choisi').innerHTML = ''; return; }
+    el('m-choisi').innerHTML = '<div class="carte" style="padding:10px;margin:10px 0 0;box-shadow:none;background:var(--vert-clair)">' +
+      '<strong>' + esc(a.name) + '</strong> — ' + a.kcal + ' kcal/100' + esc(a.unit) +
+      (a.fresh ? ' · <span class="puce puce-ok">frais</span>' : '') + '</div>';
+  }
+
+  /** Propose la date de péremption la plus vraisemblable pour un aliment frais. */
+  function proposerDate() {
+    var a = foodChoisi ? aliment(foodChoisi) : null;
+    if (!a) return;
+    var champ = el('m-exp');
+    if (!champ || champ.value) return;
+    if (a.fresh && a.perish) {
+      var d = new Date();
+      d.setDate(d.getDate() + a.perish);
+      champ.value = versISO(d);
+    }
+  }
+
+  function validerAjout(existant) {
+    if (!foodChoisi) { toast('Choisis d’abord un aliment'); return; }
+    var qte = Number(el('m-qte').value);
+    if (!qte || qte <= 0) { toast('Indique une quantité'); return; }
+    var exp = el('m-exp').value || null;
+
+    if (existant) {
+      existant.qty = qte;
+      existant.expiry = exp;
+      sauver();
+      toast('Aliment mis à jour');
+    } else {
+      ajouterAuStock(foodChoisi, qte, exp);
+      toast(nomAliment(foodChoisi) + ' ajouté');
+    }
+    fermerModale();
+    rafraichir();
+  }
+
+  /* ========================================================== RECETTES */
+
+  function kcalRecette(r) {
+    return r.ing.reduce(function (s, i) {
+      var a = aliment(i.id);
+      return s + (a ? a.kcal * i.q / 100 : 0);
+    }, 0);
+  }
+
+  function kcalParPortion(r) { return kcalRecette(r) / (r.serv || 1); }
+
+  function statutDe(foodId) {
+    var p = etat.prefs[foodId];
+    return p ? p.statut : null;
+  }
+
+  function excluDeRecette(foodId) {
+    var s = statutDe(foodId);
+    return s === 'pas_aime' || s === 'eviter';
+  }
+
+  /**
+   * Note une recette : ce que tu as déjà, en priorité ce qui périme,
+   * et malus si il manque des ingrédients ou si tu n'aimes pas un truc.
+   */
+  function analyserRecette(r, parId) {
+    var stock = parId || totalStock();
+    var score = 0, manquants = [], aimes = 0, urgents = 0, couverts = 0;
+    var exclue = false;
+
+    r.ing.forEach(function (i) {
+      var a = aliment(i.id);
+      if (excluDeRecette(i.id)) { exclue = true; score -= 500; return; }
+      if (statutDe(i.id) === 'aime') { aimes++; score += 8; }
+
+      // « couvert » = on a la quantité nécessaire (et pas 1 gramme de plus)
+      var dispo = stock[i.id] || 0;
+      if (dispo >= i.q) {
+        couverts++;
+        score += 10;
+        // Prime forte pour un aliment frais qui va périmer.
+        var pire = plusUrgentDe(i.id);
+        if (pire !== null) {
+          if (pire <= 2) { score += 30; urgents++; }
+          else if (pire <= 5) { score += 18; urgents++; }
+          else if (a && a.fresh) score += 8;
+        }
+      } else {
+        score -= 10;
+        manquants.push(i);
+      }
+    });
+
+    // Un petit biais vers les repas rapides
+    score += Math.max(0, 40 - r.time) / 10;
+
+    return {
+      recette: r,
+      score: score,
+      manquants: manquants,
+      nbManquants: manquants.length,
+      nbCouverts: couverts,
+      total: r.ing.length,
+      aimes: aimes,
+      urgents: urgents,
+      exclue: exclue,
+      kcal: Math.round(kcalParPortion(r))
+    };
+  }
+
+  /** Nombre de jours restants du plus périmé d'un aliment en stock. */
+  function plusUrgentDe(foodId) {
+    var pire = null;
+    etat.stock.forEach(function (l) {
+      if (l.foodId !== foodId || !l.expiry) return;
+      var j = joursRestants(l.expiry);
+      if (pire === null || j < pire) pire = j;
+    });
+    return pire;
+  }
+
+  var filtreRecette = 'tout';
+
+  function rendreRecettes() {
+    var analyses = RECETTES.map(function (r) { return analyserRecette(r); })
+      .filter(function (a) { return !a.exclue; })
+      .filter(function (a) { return a.kcal < etat.reglages.kcalMax; });
+
+    if (filtreRecette === 'complet') {
+      analyses = analyses.filter(function (a) { return a.nbManquants === 0; });
+    } else if (filtreRecette === 'urgent') {
+      analyses = analyses.filter(function (a) { return a.urgents > 0; });
+    } else if (filtreRecette === 'aime') {
+      analyses = analyses.filter(function (a) { return a.aimes > 0; });
+    }
+
+    analyses.sort(function (a, b) { return b.score - a.score; });
+
+    var f = el('recipe-filters');
+    var defs = [
+      ['tout', 'Toutes'], ['complet', 'Sans manque'], ['urgent', 'À sauver'], ['aime', 'Tu aimes ça']
+    ];
+    f.innerHTML = defs.map(function (d) {
+      return '<button class="filtre' + (filtreRecette === d[0] ? ' is-actif' : '') +
+        '" data-filtre="' + d[0] + '">' + d[1] + '</button>';
+    }).join('');
+    Array.prototype.forEach.call(f.querySelectorAll('[data-filtre]'), function (n) {
+      n.addEventListener('click', function () {
+        filtreRecette = n.getAttribute('data-filtre');
+        rendreRecettes();
+      });
+    });
+
+    var ens = el('recipe-list');
+    if (!analyses.length) {
+      ens.innerHTML = '<div class="vide"><span class="grand">🍽</span>' +
+        'Aucune recette ne correspond à ce filtre.<br>Ajoute des aliments à ton stock.</div>';
+      return;
+    }
+
+    ens.innerHTML = analyses.map(function (a) {
+      var pct = Math.round((a.nbCouverts / a.total) * 100);
+      var sur = a.nbManquants === 0
+        ? '<span class="puce puce-ok">Tu as tout</span>'
+        : '<span class="puce puce-bientot">' + a.nbManquants + ' manquant' + (a.nbManquants > 1 ? 's' : '') + '</span>';
+      var urg = a.urgents > 0
+        ? '<span class="puce puce-expire">🥕 sauve ' + a.urgents + '</span>' : '';
+      var aime = a.aimes > 0 ? '<span class="puce puce-bleu">💚 ' + a.aimes + '</span>' : '';
+      return '<div class="carte" data-recette="' + a.recette.id + '">' +
+        '<div class="ligne">' +
+          '<div class="croissance"><h3>' + esc(a.recette.name) + '</h3>' +
+            '<p>' + esc(a.recette.desc || '') + '</p></div>' +
+          '<span class="puce puce-kcal">' + a.kcal + ' kcal</span>' +
+        '</div>' +
+        '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:9px">' +
+          sur + urg + aime +
+          '<span class="puce puce-neutre">' + a.nbCouverts + '/' + a.total + ' en stock</span>' +
+          '<span class="puce puce-neutre">⏱ ' + a.recette.time + ' min</span>' +
+        '</div>' +
+        '<div class="actions-manquant">' +
+          '<button class="btn btn-primary" data-act="ouvrir-recette" data-id="' + a.recette.id + '">Voir la recette</button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    Array.prototype.forEach.call(ens.querySelectorAll('[data-act="ouvrir-recette"]'), function (n) {
+      n.addEventListener('click', function () { ouvrirRecette(n.getAttribute('data-id')); });
+    });
+  }
+
+  /* ------------------------------------------- fiche recette + « tu l'as ? » */
+
+  function ouvrirRecette(id) {
+    var r = RECETTES.filter(function (x) { return x.id === id; })[0];
+    if (!r) return;
+    var a = analyserRecette(r);
+    var stock = totalStock();
+
+    var corps = '';
+
+    if (a.nbManquants > 0) {
+      corps += '<div class="jump">🤔 Il te manque ' + a.nbManquants +
+        ' ingrédient(s). Tu les as peut-être oublié(s) ?</div>';
+    } else if (a.urgents > 0) {
+      corps += '<div class="jump">🥕 Cette recette sauve ' + a.urgents +
+        ' aliment(s) qui périment bientôt.</div>';
+    }
+
+    corps += '<p style="font-size:.9rem;color:var(--gris);margin:0 0 6px">' +
+      esc(r.desc || '') + '</p>' +
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">' +
+        '<span class="puce puce-kcal">' + a.kcal + ' kcal/portion</span>' +
+        '<span class="puce puce-neutre">' + (r.serv || 1) + ' portion(s)</span>' +
+        '<span class="puce puce-neutre">⏱ ' + r.time + ' min</span>' +
+      '</div>' +
+      '<h3 style="margin:14px 0 6px;font-size:.95rem">Ingrédients</h3>';
+
+    r.ing.forEach(function (i) {
+      var al = aliment(i.id);
+      var st = statutDe(i.id);
+      var dispo = stock[i.id] || 0;
+      var manque = dispo < i.q;
+      var urgent = plusUrgentDe(i.id);
+
+      corps += '<div class="etail-ingr">' +
+        '<span>' + (manque ? '❌' : '✅') + '</span>' +
+        '<span class="nom">' + esc(al ? al.name : i.id) +
+          (st === 'aime' ? ' 💚' : (st === 'pas_aime' ? ' 🙅' : '')) +
+          (urgent !== null && urgent <= 3 ? ' <span class="puce puce-expire">J' +
+            (urgent < 0 ? '+' : '-') + Math.abs(urgent) + '</span>' : '') +
+        '</span>' +
+        '<span class="qte">' + fmtQte(i.q) + ' ' + esc(al ? al.unit : 'g') +
+          (dispo > 0 ? ' · ' + fmtQte(dispo) + ' en stock' : '') + '</span>' +
+      '</div>';
+
+      // ---- LA question clé : l'ingrédient manque, tu l'as oublié ?
+      if (manque) {
+        corps += '<div class="manquant" data-bloc="' + i.id + '">' +
+          '<strong>Tu n’as pas noté « ' + esc(al ? al.name : i.id) + ' » (' + fmtQte(i.q) +
+          ' ' + esc(al ? al.unit : 'g') + ').</strong><br>' +
+          '<span style="font-size:.83rem">Tu l’as peut-être simplement oublié ?</span>' +
+          '<div class="actions-manquant">' +
+            '<button class="btn btn-primary" data-act="oublie" data-id="' + i.id + '">Je l’ai !</button>' +
+            '<button class="btn btn-accent" data-act="acheter" data-id="' + i.id + '">À acheter</button>' +
+            '<button class="btn btn-danger" data-act="eviter" data-id="' + i.id + '">Ne pas utiliser</button>' +
+          '</div>' +
+        '</div>';
+      }
+    });
+
+    corps += '<h3 style="margin:16px 0 6px;font-size:.95rem">Préparation</h3>' +
+      '<ol class="etapes">' +
+      (r.steps || []).map(function (s) { return '<li>' + esc(s) + '</li>'; }).join('') +
+      '</ol>' +
+      '<div class="actions-manquant" style="margin-top:16px">' +
+        '<button class="btn btn-primary" data-act="cuisiner" data-id="' + r.id + '">' +
+          'J’ai cuisiné — sortir du stock</button>' +
+        '<button class="btn btn-ghost" data-act="tout-acheter" data-id="' + r.id + '">' +
+          'Mettre les manques en courses</button>' +
+      '</div>';
+
+    ouvrirModale(r.name, corps);
+
+    var corps_ = el('modal-body');
+
+    corps_.querySelectorAll('[data-act="oublie"]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        ouvrirRecette(id);            // on ferme la fiche
+        modaleAjoutAliment(null);     // puis on demande quantité + date
+      });
+    });
+
+    corps_.querySelectorAll('[data-act="acheter"]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var fid = b.getAttribute('data-id');
+        ajouterCourses(fid, quantiteRecette(r, fid), 'recette : ' + r.name);
+        var bloc = b.closest('[data-bloc]');
+        if (bloc) bloc.outerHTML = '<div class="puce puce-ok" style="display:inline-block;margin:6px 0">✔️ ' +
+          esc(nomAliment(fid)) + ' ajouté à la liste de courses</div>';
+        toast('Ajouté à la liste de courses');
+      });
+    });
+
+    corps_.querySelectorAll('[data-act="eviter"]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var fid = b.getAttribute('data-id');
+        etat.prefs[fid] = { statut: 'eviter', at: aujourdhui(), nbTests: 0 };
+        sauver();
+        toast(nomAliment(fid) + ' ne sera plus proposé');
+        fermerModale();
+        rafraichir();
+      });
+    });
+
+    corps_.querySelector('[data-act="cuisiner"]').addEventListener('click', function () {
+      consommerRecette(r);
+    });
+    corps_.querySelector('[data-act="tout-acheter"]').addEventListener('click', function () {
+      var n = 0;
+      analyserRecette(r).manquants.forEach(function (i) {
+        ajouterCourses(i.id, i.q, 'recette : ' + r.name); n++;
+      });
+      toast(n ? n + ' ingrédient(s) en courses' : 'Tu as déjà tout !');
+    });
+  }
+
+  function quantiteRecette(r, fid) {
+    var i = (r.ing || []).filter(function (x) { return x.id === fid; })[0];
+    return i ? i.q : 100;
+  }
+
+  /** Déduit les ingrédients d'une recette du stock. */
+  function consommerRecette(r) {
+    var stock = totalStock();
+    var utilise = 0;
+    r.ing.forEach(function (i) {
+      if ((stock[i.id] || 0) <= 0) return;
+      var restant = i.q;
+      for (var k = etat.stock.length - 1; k >= 0 && restant > 0; k--) {
+        var l = etat.stock[k];
+        if (l.foodId !== i.id) continue;
+        if (l.qty <= restant) {
+          restant -= l.qty;
+          etat.stock.splice(k, 1);
+          utilise++;
+        } else {
+          l.qty -= restant;
+          restant = 0;
+          utilise++;
+        }
+      }
+    });
+    sauver();
+    fermerModale();
+    rafraichir();
+    toast(utilise ? 'Stock mis à jour pour ' + r.name : 'Rien n’a été retiré du stock');
+  }
+
+  /* =============================================== À GOÛTER (1× / mois) */
+
+  function decouverteDue() {
+    var d = etat.decouverte;
+    if (d.courante) return false;
+    if (!d.derniere) return true;
+    var ecoules = -joursRestants(d.derniere);
+    return ecoules >= etat.reglages.intervalleJours;
+  }
+
+  /** Recettes contenant un aliment donné, les plus légères d'abord. */
+  function recettesAvec(foodId) {
+    return RECETTES
+      .filter(function (r) {
+        if (kcalParPortion(r) >= etat.reglages.kcalMax) return false;
+        return r.ing.some(function (i) { return i.id === foodId; });
+      })
+      .sort(function (a, b) { return kcalParPortion(a) - kcalParPortion(b); });
+  }
+
+  function candidatsDecouverte() {
+    var stock = totalStock();
+    // 1. d'abord ce qui est noté « à retester »
+    var aRetester = Object.keys(etat.prefs).filter(function (fid) {
+      return etat.prefs[fid].statut === 'retester';
+    });
+    if (aRetester.length) {
+      return { foodId: aRetester[0], retest: true };
+    }
+    // 2. sinon un aliment jamais goûté, pas déjà en stock
+    var pool = CATALOGUE.filter(function (a) {
+      if (statutDe(a.id)) return false;                      // déjà jugé
+      if (['sel', 'poivre', 'eau', 'cafe', 'the'].indexOf(a.id) >= 0) return false;
+      if (a.cat === 'condiments' || a.cat === 'boissons') return false;
+      if ((stock[a.id] || 0) > 0) return false;              // déjà chez toi
+      return recettesAvec(a.id).length > 0;                  // doitrent dans une recette
+    });
+    if (!pool.length) return null;
+
+    // Écarter ce qui vient d'être proposé (variété)
+    var vus = {};
+    (etat.decouverte.historique || []).forEach(function (h) { vus[h.foodId] = true; });
+    var frais = pool.filter(function (a) { return !vus[a.id]; });
+    return { foodId: (frais.length ? frais : pool)[0].id, retest: false };
+  }
+
+  function proposerDecouverte() {
+    var c = candidatsDecouverte();
+    if (!c) return false;
+    var rs = recettesAvec(c.foodId);
+    etat.decouverte.courante = {
+      foodId: c.foodId,
+      recipeId: rs.length ? rs[0].id : null,
+      retest: c.retest,
+      demandee: aujourdhui()
+    };
+    sauver();
+    // ajouté d'office à la liste de courses
+    ajouterCourses(c.foodId, 150, 'à goûter ce mois-ci');
+    return true;
+  }
+
+  function cloturerDecouverte(statut) {
+    var d = etat.decouverte.courante;
+    if (!d) return;
+    var fid = d.foodId;
+    var p = etat.prefs[fid] || { nbTests: 0 };
+    p.at = aujourdhui();
+
+    if (statut === 'retester') {
+      p.nbTests = (p.nbTests || 0) + 1;
+      if (p.nbTests >= 2) {
+        // déjà représenté deux fois sans avis : on ne repropose plus
+        p.statut = 'neutre';
+      } else {
+        p.statut = 'retester';
+      }
+    } else {
+      p.statut = statut;
+      p.nbTests = (p.nbTests || 0) + 1;
+    }
+    etat.prefs[fid] = p;
+
+    etat.decouverte.historique = (etat.decouverte.historique || []).concat([{
+      foodId: fid, statut: statut, at: aujourdhui()
+    }]);
+    etat.decouverte.courante = null;
+    etat.decouverte.derniere = aujourdhui();
+
+    // si on n'aime pas, on retire de la liste de courses
+    if (statut === 'pas_aime') {
+      etat.courses = etat.courses.filter(function (c) { return c.foodId !== fid; });
+    }
+    sauver();
+  }
+
+  function rendreDecouverte() {
+    var ens = el('decouverte-content');
+    var badge = el('tab-badge-decouverte');
+    var d = etat.decouverte.courante;
+
+    if (d) {
+      badge.hidden = false; badge.textContent = '1';
+      var a = aliment(d.foodId);
+      var r = d.recipeId ? RECETTES.filter(function (x) { return x.id === d.recipeId; })[0] : null;
+      var kcal = r ? Math.round(kcalParPortion(r)) : null;
+      ens.innerHTML =
+        '<div class="carte" style="background:linear-gradient(135deg,#fff8e1,#fff);border-left:5px solid var(--orange)">' +
+          '<div class="jump" style="background:transparent;border:0;padding:0 0 10px 0;color:var(--orange)">' +
+            (d.retest ? '🔁 À retester : tu avais dit ne pas savoir.' : '🧪 Nouvel aliment à goûter ce mois-ci') +
+          '</div>' +
+          '<h3 style="font-size:1.15rem">' + esc(a.name) + '</h3>' +
+          '<p style="margin:6px 0 12px">Inclus dans un repas : ' +
+            (r ? '<strong>' + esc(r.name) + '</strong>' : 'à trouver') +
+            (kcal ? ' — <span class="puce puce-kcal">' + kcal + ' kcal</span>' : '') + '</p>' +
+          '<div class="row-actions">' +
+            '<button class="btn btn-ghost" data-act="voir-recette-decouverte">Voir le repas</button>' +
+            '<button class="btn btn-primary" data-act="deja-goûte">Je l’ai goûté</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="carte"><h3>Comment ça marche</h3>' +
+          '<p>Une fois par mois, MonStock te propose un aliment que tu n’as jamais goûté, ' +
+          'et l’ajoute à ta liste de courses. Tu le manges dans un repas, puis tu donnes ton avis. ' +
+          'Si tu réponds « je ne sais pas », l’aliment te sera reproposé une autre fois.</p></div>';
+
+      ens.querySelector('[data-act="voir-recette-decouverte"]').addEventListener('click', function () {
+        if (d.recipeId) ouvrirRecette(d.recipeId);
+      });
+      ens.querySelector('[data-act="deja-goûte"]').addEventListener('click', function () {
+        ouvrirModale('Alors, ‘' + a.name + '’ ?',
+          '<p style="margin:0 0 14px;font-size:.92rem;color:var(--gris)">' +
+          'Tu l’as mangé dans un repas. Tu en as pensé quoi ?</p>' +
+          '<div class="choix-3">' +
+            '<button class="btn btn-primary" data-verdict="aime">😋 J’ai aimé</button>' +
+            '<button class="btn btn-danger" data-verdict="pas_aime">😖 Je n’ai pas aimé</button>' +
+            '<button class="btn btn-ghost" data-verdict="retester">🤷 Je ne sais pas</button>' +
+          '</div>');
+        el('modal-body').querySelectorAll('[data-verdict]').forEach(function (b) {
+          b.addEventListener('click', function () {
+            var v = b.getAttribute('data-verdict');
+            cloturerDecouverte(v);
+            fermerModale();
+            rafraichir();
+            var msg = v === 'aime' ? 'Noté : tu aimes !'
+              : v === 'pas_aime' ? 'Noté : tu n’aimes pas'
+              : 'On te le reproposera au prochain mois';
+            toast(msg);
+          });
+        });
+      });
+      return;
+    }
+
+    badge.hidden = true;
+    var reste = decompteJoursProchaine();
+    ens.innerHTML =
+      '<div class="carte">' +
+        '<h3>🧪 Une découverte par mois</h3>' +
+        '<p style="margin-top:6px">' +
+          (reste > 0
+            ? 'Prochaine proposition dans <strong>' + reste + ' jour(s)</strong>.'
+            : 'Une proposition t’attend…') + '</p>' +
+        (reste <= 0 ? '<div class="row-actions" style="margin-top:12px">' +
+          '<button class="btn btn-primary" data-act="proposer-maintenant">Proposer un aliment maintenant</button>' +
+          '</div>' : '') +
+      '</div>' +
+      '<div class="carte"><h3>Historique</h3>' +
+        (etat.decouverte.historique.length
+          ? '<div style="margin-top:8px">' + etat.decouverte.historique.slice().reverse().map(function (h) {
+              var a = aliment(h.foodId);
+              var ico = h.statut === 'aime' ? '😋' : (h.statut === 'pas_aime' ? '😖' : '🤷');
+              var txt = h.statut === 'aime' ? 'aimé' : (h.statut === 'pas_aime' ? 'pas aimé' : 'à retester');
+              return '<div class="etail-ingr"><span>' + ico + '</span>' +
+                '<span class="nom">' + esc(a ? a.name : h.foodId) + '</span>' +
+                '<span class="qte">' + txt + ' · ' + formaterDate(h.at) + '</span></div>';
+            }).join('') + '</div>'
+          : '<p style="margin-top:6px">Aucune découverte pour l’instant.</p>') +
+      '</div>';
+
+    var b = ens.querySelector('[data-act="proposer-maintenant"]');
+    if (b) b.addEventListener('click', function () {
+      if (proposerDecouverte()) { rafraichir(); toast('Nouvel aliment proposé'); }
+      else toast('Plus rien de nouveau à proposer');
+    });
+  }
+
+  function decompteJoursProchaine() {
+    if (!etat.decouverte.derniere) return 0;
+    var ecoules = -joursRestants(etat.decouverte.derniere);
+    return Math.max(0, etat.reglages.intervalleJours - ecoules);
+  }
+
+  /* ==================================================== GOÛTS (préférences) */
+
+  var LIBELLES = {
+    aime: { txt: 'Tu aimes', puce: 'puce-ok', ico: '😋' },
+    pas_aime: { txt: 'Tu n’aimes pas', puce: 'puce-expire', ico: '😖' },
+    retester: { txt: 'À retester', puce: 'puce-violet', ico: '🤷' },
+    eviter: { txt: 'À éviter', puce: 'puce-neutre', ico: '🚫' },
+    neutre: { txt: 'Goûté 2× sans avis', puce: 'puce-neutre', ico: '➖' }
+  };
+
+  function rendreGouts() {
+    var ens = el('gouts-content');
+    var groupes = ['aime', 'retester', 'pas_aime', 'eviter', 'neutre'];
+    var html = '';
+
+    groupes.forEach(function (g) {
+      var ids = Object.keys(etat.prefs).filter(function (fid) {
+        return etat.prefs[fid].statut === g;
+      });
+      if (!ids.length) return;
+      html += '<div class="carte"><h3>' + LIBELLES[g].ico + ' ' + LIBELLES[g].txt +
+        ' <span class="puce puce-neutre">' + ids.length + '</span></h3>';
+      ids.forEach(function (fid) {
+        var a = aliment(fid);
+        var p = etat.prefs[fid];
+        var ds = plusUrgentDe(fid);
+        html += '<div class="etail-ingr">' +
+          '<span class="nom">' + esc(a ? a.name : fid) +
+            (ds !== null && ds <= 2 ? ' <span class="puce puce-expire">à finir</span>' : '') + '</span>' +
+          '<span class="qte">' + formaterDate(p.at) + '</span>' +
+          '<div style="display:flex;gap:5px">' +
+            (g !== 'aime' ? '<button class="btn btn-ghost" data-act="pref-aime" data-id="' + fid + '" style="padding:6px 9px;font-size:.75rem">😋</button>' : '') +
+            (g !== 'pas_aime' ? '<button class="btn btn-danger" data-act="pref-pas" data-id="' + fid + '" style="padding:6px 9px;font-size:.75rem">😖</button>' : '') +
+            (g !== 'retester' ? '<button class="btn btn-ghost" data-act="pref-retester" data-id="' + fid + '" style="padding:6px 9px;font-size:.75rem">🤷</button>' : '') +
+            '<button class="btn btn-ghost" data-act="pref-oubli" data-id="' + fid + '" style="padding:6px 9px;font-size:.75rem">✕</button>' +
+          '</div>' +
+        '</div>';
+      });
+      html += '</div>';
+    });
+
+    if (!html) {
+      html = '<div class="vide"><span class="grand">💚</span>' +
+        'Aucun goût enregistré pour l’instant.<br>' +
+        'Goûte un aliment du commerce et réponds à la proposition mensuelle.</div>';
+    }
+    ens.innerHTML = html;
+
+    ens.querySelectorAll('[data-act^="pref-"]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var fid = b.getAttribute('data-id');
+        var act = b.getAttribute('data-act');
+        if (act === 'pref-oubli') delete etat.prefs[fid];
+        else if (act === 'pref-aime') etat.prefs[fid] = { statut: 'aime', at: aujourdhui(), nbTests: 1 };
+        else if (act === 'pref-pas') etat.prefs[fid] = { statut: 'pas_aime', at: aujourdhui(), nbTests: 1 };
+        else etat.prefs[fid] = { statut: 'retester', at: aujourdhui(), nbTests: 1 };
+        sauver();
+        rafraichir();
+      });
+    });
+  }
+
+  /* ================================================= LISTE DE COURSES */
+
+  function ajouterCourses(foodId, qte, origine) {
+    var ex = etat.courses.filter(function (c) { return c.foodId === foodId && !c.fait; })[0];
+    if (ex) {
+      ex.qty = (Number(ex.qty) || 0) + (Number(qte) || 0);
+      ex.origine = origine || ex.origine;
+    } else {
+      etat.courses.push({
+        cid: uid('c'), foodId: foodId, qty: Number(qte) || 100,
+        fait: false, origine: origine || 'manuel', at: aujourdhui()
+      });
+    }
+    sauver();
+    majBadgeCourses();
+  }
+
+  function majBadgeCourses() {
+    var n = etat.courses.filter(function (c) { return !c.fait; }).length;
+    var b = el('tab-badge-courses');
+    b.hidden = n === 0;
+    b.textContent = n > 9 ? '9+' : String(n);
+  }
+
+  function rendreCourses() {
+    var ens = el('shopping-list');
+    majBadgeCourses();
+    if (!etat.courses.length) {
+      ens.innerHTML = '<div class="vide"><span class="grand">🛒</span>Liste de courses vide.<br>' +
+        'Les ingrédients manquants des recettes et l’aliment à goûter apparaissent ici tout seuls.</div>';
+      return;
+    }
+    var ordre = etat.courses.slice().sort(function (a, b) {
+      if (!!a.fait !== !!b.fait) return a.fait ? 1 : -1;
+      var ca = aliment(a.foodId), cb = aliment(b.foodId);
+      var na = NOMS_CAT[ca ? ca.cat : ''] || 'zzz';
+      var nb = NOMS_CAT[cb ? cb.cat : ''] || 'zzz';
+      if (na !== nb) return na < nb ? -1 : 1;
+      return (ca ? ca.name : '').localeCompare(cb ? cb.name : '');
+    });
+
+    ens.innerHTML = ordre.map(function (c) {
+      var a = aliment(c.foodId);
+      return '<div class="item-course' + (c.fait ? ' faite' : '') + '">' +
+        '<input type="checkbox" data-cid="' + c.cid + '"' + (c.fait ? ' checked' : '') + '>' +
+        '<div class="libelle">' + esc(a ? a.name : c.foodId) +
+          ' <span style="color:var(--gris)">· ' + fmtQte(c.qty) + ' ' + esc(a ? a.unit : 'g') + '</span>' +
+          '<div class="source">' + esc(c.origine || '') + '</div>' +
+        '</div>' +
+        '<button class="icon-btn" style="background:var(--gris-clair);color:var(--texte)" ' +
+          'data-act="supprimer-course" data-cid="' + c.cid + '" aria-label="Supprimer">✕</button>' +
+      '</div>';
+    }).join('');
+
+    ens.querySelectorAll('[data-cid]').forEach(function (n) {
+      if (n.tagName === 'INPUT') {
+        n.addEventListener('change', function () {
+          var c = etat.courses.filter(function (x) { return x.cid === n.getAttribute('data-cid'); })[0];
+          if (c) { c.fait = n.checked; sauver(); rendreCourses(); }
+        });
+      }
+    });
+    ens.querySelectorAll('[data-act="supprimer-course"]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var cid = b.getAttribute('data-cid');
+        etat.courses = etat.courses.filter(function (c) { return c.cid !== cid; });
+        sauver();
+        rendreCourses();
+      });
+    });
+  }
+
+  /* ================================================== RÉGLAGES / SAUVEGARDE */
+
+  function ouvrirReglages() {
+    ouvrirModale('Réglages',
+      '<div class="champ"><label for="r-kcal">Plafond de calories par portion</label>' +
+        '<input id="r-kcal" type="number" min="200" max="900" step="10" value="' + etat.reglages.kcalMax + '">' +
+        '<div class="aide">Les propositions au-dessus de ce seuil sont masquées.</div></div>' +
+      '<div class="champ"><label for="r-jours">Fréquence de la découverte (jours)</label>' +
+        '<input id="r-jours" type="number" min="7" max="90" step="1" value="' + etat.reglages.intervalleJours + '">' +
+        '<div class="aide">Par défaut 30 jours, soit une fois par mois.</div></div>' +
+      '<button class="btn btn-primary btn-block" id="r-valider">Enregistrer</button>' +
+      '<hr style="border:0;border-top:1px solid var(--bord);margin:18px 0">' +
+      '<h3 style="margin:0 0 8px;font-size:.95rem">Sauvegarde</h3>' +
+      '<p style="font-size:.85rem;color:var(--gris);margin:0 0 12px">' +
+        'Tes données sont uniquement dans ce téléphone. Exporte-les pour les transférer.</p>' +
+      '<div class="actions-manquant">' +
+        '<button class="btn btn-ghost" id="r-export">Exporter (fichier)</button>' +
+        '<button class="btn btn-ghost" id="r-import">Importer</button>' +
+        '<button class="btn btn-danger" id="r-reset">Tout effacer</button>' +
+      '</div>' +
+      '<input type="file" id="r-fichier" accept="application/json" hidden>');
+
+    el('r-valider').addEventListener('click', function () {
+      etat.reglages.kcalMax = Math.min(900, Math.max(200, Number(el('r-kcal').value) || 500));
+      etat.reglages.intervalleJours = Math.min(90, Math.max(7, Number(el('r-jours').value) || 30));
+      sauver();
+      fermerModale();
+      rafraichir();
+      toast('Réglages enregistrés');
+    });
+
+    el('r-export').addEventListener('click', function () {
+      var blob = new Blob([JSON.stringify(etat, null, 2)], { type: 'application/json' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'monstock-' + aujourdhui() + '.json';
+      a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+      toast('Fichier exporté');
+    });
+
+    el('r-import').addEventListener('click', function () { el('r-fichier').click(); });
+    el('r-fichier').addEventListener('change', function (ev) {
+      var f = ev.target.files[0];
+      if (!f) return;
+      var fr = new FileReader();
+      fr.onload = function () {
+        try {
+          etat = fusionner(etatVierge(), JSON.parse(fr.result));
+          sauver();
+          fermerModale();
+          rafraichir();
+          toast('Données importées');
+        } catch (e) { toast('Fichier illisible'); }
+      };
+      fr.readAsText(f);
+    });
+
+    el('r-reset').addEventListener('click', function () {
+      if (!confirm('Effacer tout : stock, goûts, courses et découverte ?')) return;
+      etat = etatVierge();
+      sauver();
+      fermerModale();
+      rafraichir();
+      toast('Données effacées');
+    });
+  }
+
+  /* ====================================================== NAVIGATION */
+
+  var TITRES = {
+    stock: 'Mon stock', recettes: 'Recettes', decouverte: 'À goûter',
+    goûts: 'Mes goûts', courses: 'Liste de courses'
+  };
+  var ecranCourant = 'stock';
+
+  function aller(ecran) {
+    ecranCourant = ecran;
+    Array.prototype.forEach.call(document.querySelectorAll('.screen'), function (s) {
+      s.classList.toggle('is-active', s.id === 'screen-' + ecran);
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (t) {
+      t.classList.toggle('is-active', t.getAttribute('data-screen') === ecran);
+    });
+    el('screen-title').textContent = TITRES[ecran];
+    window.scrollTo(0, 0);
+  }
+
+  function rafraichir() {
+    rendreStock();
+    rendreRecettes();
+    rendreDecouverte();
+    rendreGouts();
+    rendreCourses();
+    if (decouverteDue()) {
+      if (proposerDecouverte()) rendreDecouverte();
+    }
+  }
+
+  /* ========================================================== DÉMARRAGE */
+
+  function init() {
+    charger();
+
+    document.querySelectorAll('.tab').forEach(function (t) {
+      t.addEventListener('click', function () { aller(t.getAttribute('data-screen')); });
+    });
+    el('btn-menu').addEventListener('click', ouvrirReglages);
+    el('modal-close').addEventListener('click', fermerModale);
+    el('modal-backdrop').addEventListener('click', function (e) {
+      if (e.target === el('modal-backdrop')) fermerModale();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && modaleOuverte) fermerModale();
+    });
+
+    el('btn-add-food').addEventListener('click', function () { modaleAjoutAliment(null); });
+
+    el('stock-list').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-act]');
+      if (!b) return;
+      var sid = b.getAttribute('data-sid');
+      var i = etat.stock.findIndex(function (l) { return l.sid === sid; });
+      if (i < 0) return;
+      if (b.getAttribute('data-act') === 'retirer') {
+        var nom = nomAliment(etat.stock[i].foodId);
+        etat.stock.splice(i, 1);
+        sauver(); rafraichir(); toast(nom + ' retiré');
+      } else if (b.getAttribute('data-act') === 'ajuster') {
+        modaleAjoutAliment(JSON.parse(JSON.stringify(etat.stock[i])));
+        // édition : on supprime l'entrée d'origine à la validation
+        var idx = i;
+        var titre = el('modal-title');
+        titre.textContent = 'Modifier l’aliment';
+        var valider = el('m-valider');
+        valider.addEventListener('click', function () {
+          setTimeout(function () {
+            var garde = etat.stock.findIndex(function (l) { return l.sid === sid; });
+            if (garde >= 0) etat.stock.splice(garde, 1);
+            sauver(); rafraichir();
+          }, 0);
+        });
+      }
+    });
+
+    el('btn-add-shop').addEventListener('click', function () {
+      ouvrirModale('Ajouter aux courses',
+        '<div class="champ"><label for="c-recherche">Article</label>' +
+          '<input id="c-recherche" type="search" placeholder="Rechercher…" autocomplete="off">' +
+          '<div class="suggestions" id="c-suggestions"></div></div>' +
+        '<div id="c-choisi"></div>' +
+        '<div id="c-champs" hidden>' +
+          '<div class="champ"><label for="c-qte">Quantité (g ou ml)</label>' +
+            '<input id="c-qte" type="number" inputmode="numeric" min="1" value="200"></div>' +
+          '<button class="btn btn-primary btn-block" id="c-valider">Ajouter</button>' +
+        '</div>');
+      var sel = null;
+      function liste(t) {
+        var q = String(t || '').toLowerCase();
+        var res = CATALOGUE.filter(function (a) {
+          return !q || a.name.toLowerCase().indexOf(q) >= 0;
+        }).slice(0, 50);
+        el('c-suggestions').innerHTML = res.map(function (a) {
+          return '<div class="suggestion" data-food="' + a.id + '"><span>' + esc(a.name) + '</span>' +
+            '<span class="kcal-mini">' + a.kcal + ' kcal</span></div>';
+        }).join('');
+        el('c-suggestions').querySelectorAll('[data-food]').forEach(function (n) {
+          n.addEventListener('click', function () {
+            sel = n.getAttribute('data-food');
+            el('c-recherche').value = nomAliment(sel);
+            el('c-champs').hidden = false;
+            el('c-choisi').innerHTML = '';
+          });
+        });
+      }
+      liste('');
+      el('c-recherche').addEventListener('input', function () { liste(el('c-recherche').value); });
+      el('c-valider').addEventListener('click', function () {
+        if (!sel) { toast('Choisis un article'); return; }
+        ajouterCourses(sel, Number(el('c-qte').value) || 100, 'manuel');
+        fermerModale(); rafraichir(); toast('Ajouté aux courses');
+      });
+    });
+
+    el('btn-clear-shop').addEventListener('click', function () {
+      etat.courses = etat.courses.filter(function (c) { return !c.fait; });
+      sauver(); rafraichir(); toast('Articles cochés retirés');
+    });
+
+    // La découverte mensuelle peut devenir due même appli fermée :
+    // on réévalue au retour sur l'appli.
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden && modaleOuverte === null) rafraichir();
+    });
+
+    rafraichir();
+
+    if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+      navigator.serviceWorker.register('sw.js').catch(function () { /* sans effet */ });
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();

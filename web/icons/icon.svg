@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img"
+     aria-label="MonStock">
+  <rect width="512" height="512" rx="112" fill="#2e7d32"/>
+  <ellipse cx="256" cy="282" rx="154" ry="126" fill="#ffffff"/>
+  <ellipse cx="256" cy="266" rx="95" ry="68" fill="none" stroke="#d2e1d2" stroke-width="4"/>
+  <ellipse cx="256" cy="236" rx="88" ry="36" fill="#4caf50"
+           transform="rotate(-38 256 236)"/>
+  <polygon points="345,347 425,347 369,231" fill="#ef6c00"/>
+  <line x1="405" y1="231" x2="440" y2="205" stroke="#4caf50" stroke-width="14"
+        stroke-linecap="round"/>
+  <line x1="365" y1="231" x2="382" y2="196" stroke="#4caf50" stroke-width="14"
+        stroke-linecap="round"/>
+</svg>

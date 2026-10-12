@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2e7d32">
+<meta name="description" content="Garde-manger intelligent : note tes aliments, reçois des recettes sous 500 kcal qui utilisent d'abord ce qui périme.">
+<title>MonStock — garde-manger & recettes</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <h1 id="screen-title">Mon stock</h1>
+  <button class="icon-btn" id="btn-menu" aria-label="Réglages">⚙</button>
+</header>
+
+<main id="app">
+
+  <!-- ======================================================= MON STOCK -->
+  <section class="screen is-active" id="screen-stock">
+    <div class="banner" id="stock-banner"></div>
+    <div class="row-actions">
+      <button class="btn btn-primary" id="btn-add-food">+ Ajouter un aliment</button>
+    </div>
+    <div id="stock-list"></div>
+  </section>
+
+  <!-- ======================================================= RECETTES -->
+  <section class="screen" id="screen-recettes">
+    <div class="filters" id="recipe-filters"></div>
+    <div id="recipe-list"></div>
+  </section>
+
+  <!-- ======================================================= À GOÛTER -->
+  <section class="screen" id="screen-decouverte">
+    <div id="decouverte-content"></div>
+  </section>
+
+  <!-- ======================================================= GOÛTS -->
+  <section class="screen" id="screen-gouts">
+    <div id="gouts-content"></div>
+  </section>
+
+  <!-- ======================================================= COURSES -->
+  <section class="screen" id="screen-courses">
+    <div class="row-actions">
+      <button class="btn btn-ghost" id="btn-add-shop">+ Ajouter un article</button>
+      <button class="btn btn-ghost" id="btn-clear-shop">Vider les articles cochés</button>
+    </div>
+    <div id="shopping-list"></div>
+  </section>
+
+</main>
+
+<nav class="tabbar">
+  <button class="tab is-active" data-screen="stock"><span>🧊</span>Stock</button>
+  <button class="tab" data-screen="recettes"><span>🍽</span>Recettes</button>
+  <button class="tab" data-screen="decouverte"><span>🧪</span>À goûter<span class="badge" id="tab-badge-decouverte" hidden></span></button>
+  <button class="tab" data-screen="gouts"><span>💚</span>Goûts</button>
+  <button class="tab" data-screen="courses"><span>🛒</span>Courses<span class="badge" id="tab-badge-courses" hidden></span></button>
+</nav>
+
+<!-- =========================================================== MODALE -->
+<div class="modal-backdrop" id="modal-backdrop" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-head">
+      <h2 id="modal-title">Titre</h2>
+      <button class="icon-btn" id="modal-close" aria-label="Fermer">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="data/foods.js"></script>
+<script src="data/recipes.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
