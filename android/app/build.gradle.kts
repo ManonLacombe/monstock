@@ -65,15 +65,19 @@ android {
 }
 
 /* ----------------------------------------------------------------------
- * Une seule source de vérité : le dossier web/ de la racine du dépôt est
- * copié dans les assets de l'APK avant chaque compilation. Les données
- * de l'utilisateur restent sur le téléphone (localStorage).
+ * Une seule source de vérité : le dossier docs/ de la racine du dépôt est
+ * à la fois le site publié par GitHub Pages et la base copiée dans les
+ * assets de l'APK. Les données de l'utilisateur restent sur le téléphone
+ * (localStorage).
  * -------------------------------------------------------------------- */
 val synchroniserWeb = tasks.register<Sync>("synchroniserWeb") {
-    description = "Copie web/ dans les assets Android"
-    from(rootProject.file("../web")) {
-        exclude("sw.js")      // pas de service worker hors ligne dans l'APK
+    description = "Copie docs/ dans les assets Android"
+    from(rootProject.file("../docs")) {
+        exclude("sw.js")          // pas de service worker hors ligne dans l'APK
         exclude("docs/**")
+        exclude("*.apk")
+        exclude("qrcode-*.png")
+        exclude("qr-*.png")
     }
     into(layout.projectDirectory.dir("src/main/assets/web"))
 }

@@ -17,8 +17,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-FOODS_JS = ROOT / "web" / "data" / "foods.js"
-RECIPES_JS = ROOT / "web" / "data" / "recipes.js"
+FOODS_JS = ROOT / "docs" / "data" / "foods.js"
+RECIPES_JS = ROOT / "docs" / "data" / "recipes.js"
 MAX_KCAL = 500
 
 # Caractères hors alphabet latin : le CJK coréen et les ponctutions

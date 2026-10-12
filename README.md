@@ -20,8 +20,10 @@ Deux versions, **un seul code** :
 Scanner le QR avec l'appareil photo. Sur mobile, menu du navigateur →
 **Ajouter à l'écran d'accueil** : l'application s'installe et fonctionne hors ligne.
 
-Le dossier `web/` du dépôt est publié automatiquement sur GitHub Pages par
-`.github/workflows/pages.yml` à chaque modification de `web/`.
+Le dossier `docs/` du dépôt est publié tel quel par GitHub Pages
+(*Settings → Pages → Source : branche `main`, dossier `/docs`*).
+Il n'y a **ni workflow, ni CI** : pousser une modification suffit, la version
+web se met à jour automatiquement.
 
 ### Installer l'APK Android
 1. Scanner le QR code « Android » avec l'appareil photo, puis ouvrir le fichier téléchargé.
@@ -109,7 +111,7 @@ Tu peux exporter ta sauvegarde en un fichier JSON à tout moment.
 ## 📁 Structure du dépôt
 
 ```
-web/                      ← source unique, partagée par le web et l'APK
+docs/                     ← site web publié par GitHub Pages
   index.html              structure de l'application
   styles.css              design mobile-first
   app.js                  logique applicative (stock, recettes, découverte…)
@@ -119,11 +121,13 @@ web/                      ← source unique, partagée par le web et l'APK
     foods.js              catalogue de 129 aliments (kcal/100 g, fraîcheur)
     recipes.js            50 recettes < 500 kcal
   icons/                  icônes de l'application
+  qrcode-web.png          QR de la version web
+  qrcode-apk.png          QR de l'application Android
 
-android/                  ← coquille WebView autour de web/
+android/                  ← coquille WebView autour de docs/
   app/src/main/
     java/…/MainActivity.java
-    assets/web/           copie de web/ générée à la compilation
+    assets/web/           copie de docs/ générée à la compilation
   app/build.gradle.kts    signature + tâche de synchronisation des assets
 
 scripts/
@@ -167,8 +171,13 @@ L'APK signé est produit dans
 `android/app/build/outputs/apk/release/app-release.apk`.
 
 ### Modifier le catalogue ou les recettes
-`web/data/foods.js` et `web/data/recipes.js` sont des tableaux JavaScript.
-Après modification, **relancer `validate.py`** puis reconstruire l'APK.
+`docs/data/foods.js` et `docs/data/recipes.js` sont des tableaux JavaScript.
+Après modification, **relancer `validate.py`**, puis :
+
+```bash
+./scripts/build.sh          # reconstruit l'APK
+git push                    # met à jour la version web
+```
 
 ---
 

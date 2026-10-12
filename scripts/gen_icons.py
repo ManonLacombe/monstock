@@ -2,11 +2,11 @@
 """Génère les icônes de l'application (PWA + Android).
 
 Produit :
-  web/icons/icon.svg               icône vectorielle
-  web/icons/icon-192.png           PWA standard
-  web/icons/icon-512.png           PWA standard
-  web/icons/icon-maskable-512.png  PWA masquable (avec marge de sécurité)
-  android/.../ic_launcher.png     Density -> icônes du lanceur Android
+  docs/icons/icon.svg               icône vectorielle
+  docs/icons/icon-192.png           PWA standard
+  docs/icons/icon-512.png           PWA standard
+  docs/icons/icon-maskable-512.png  PWA masquable (avec marge de sécurité)
+  android/.../ic_launcher.png       Density -> icônes du lanceur Android
 
 Motif : une assiette blanche sur fond vert, avec une feuille verte
         (le frais avant tout) et une carotte en accent.
@@ -91,7 +91,7 @@ SVG = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img
 
 
 def main() -> None:
-    icons = ROOT / "web" / "icons"
+    icons = ROOT / "docs" / "icons"
     icons.mkdir(parents=True, exist_ok=True)
     (icons / "icon.svg").write_text(SVG, encoding="utf-8")
 

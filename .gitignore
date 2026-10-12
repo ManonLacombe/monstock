@@ -24,4 +24,4 @@ android/keystore.properties
 *.apk
 
 # Web : généré à la volée par le build
-android/app/src/main/assets/web/
+android/app/src/main/assets/
