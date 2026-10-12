@@ -45,18 +45,30 @@ La liste est triée par urgence : les aliments périmés ou à consommer sous
 Pour un aliment frais, la date de péremption la plus probable est **proposée
 automatiquement**.
 
-### 2. Recettes — le cœur de l'app
-50 recettes, toutes **sous 500 kcal par portion**, classées selon :
+### 2. Recettes — un repas, pas un plat
+Un repas se compose d'**une entrée**, **d'un plat principal**, **d'un fromage**
+et **d'un dessert**. Chaque poste est facultatif (`et/ou`), et c'est **le total**
+qui doit tenir dans le budget d'environ **500 kcal** — pas chaque plat seul.
 
-| Critère | Effet |
+Un bouton **✨ Proposer un repas dans mon budget** assemble automatiquement
+une proposition qui tient, en privilégiant ce qui va périmer :
+
+| Poste | Ce qui est proposé |
 |---|---|
-| Ingrédient **frais qui périme sous 3 jours** | forte priorité (« 🥕 sauve 2 ») |
-| Ingrédient que tu as déjà en stock | priorité |
-| Ingrédient qui manque | malus léger |
-| Ingrédient que tu **n'aimes pas** | recette **exclue** |
-| Ingrédient que tu **aimais** | petit bonus |
+| Entrée | salades, veloutés, soupes, œufs durs, tartine chèvre-miel… |
+| Plat | 57 plats, du plus léger au plus rassasiant |
+| Fromage | une portion de camembert, brie, comté, chèvre, bleu, mozzarella… |
+| Dessert | yaourt-fruits, chocolat, compote, crème anglaise, flan… |
 
-Filtres : *Toutes*, *Sans manque*, *À sauver*, *Tu aimes ça*.
+Une **jauge** montre en permanence le total et les calories restantes, et les
+propositions de chaque poste sont **filtrées selon la place restante** : si
+il ne reste que 15 kcal, plus rien n'est proposé.
+
+87 plats au total, dont 14 pensés comme plats légers (250-320 kcal) pour
+pouvoir composer un repas complet à quatre postes.
+
+Le second onglet, **📋 Liste de plats**, donne accès à tous les plats
+individuellement, avec les filtres habituels.
 
 ### 3. « Tu l'as oublié ? »
 Quand une recette réclame un ingrédient que tu n'as pas noté, l'application
@@ -145,7 +157,7 @@ docs/                     ← site web publié par GitHub Pages
   sw.js                   service worker (hors ligne + mises à jour)
   data/
     foods.js              catalogue de 129 aliments (kcal/100 g, fraîcheur)
-    recipes.js            50 recettes < 500 kcal
+    recipes.js            87 plats (entrée / plat / fromage / dessert)
   icons/                  icônes de l'application
   qrcode-web.png          QR de la version web
   qrcode-apk.png          QR de l'application Android
@@ -174,12 +186,13 @@ docs/                     QR codes
 python3 scripts/validate.py
 ```
 Vérifie que : les fichiers de données sont lisibles, que chaque ingrédient
-existe dans le catalogue, que **toutes les recettes sont sous 500 kcal par
-portion**, que les identifiants sont uniques et que les textes ne contiennent
-pas de caractère corrompu.
+existe dans le catalogue, que **chaque plat tient seul dans le budget**, que
+**les quatre formes de repas restent constructibles sous 500 kcal**, que les
+identifiants sont uniques et que les textes ne contiennent aucun caractère
+corrompu.
 
 ```
-Tout est valide : 50 recettes, toutes < 500 kcal/portion.
+Tout est valide : 87 plats, chaque composant tient dans le budget de 500 kcal.
 ```
 
 ### Regenerer les icônes et les QR codes

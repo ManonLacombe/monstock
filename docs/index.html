@@ -31,7 +31,12 @@
 
   <!-- ======================================================= RECETTES -->
   <section class="screen" id="screen-recettes">
-    <div class="filters" id="recipe-filters"></div>
+    <div class="filtres" id="mode-filtres">
+      <button class="filtre is-actif" data-mode="repas">🍽 Repas complet</button>
+      <button class="filtre" data-mode="liste">📋 Liste de plats</button>
+    </div>
+    <div id="composer-repas"></div>
+    <div id="recipe-filters" hidden></div>
     <div id="recipe-list"></div>
   </section>
 

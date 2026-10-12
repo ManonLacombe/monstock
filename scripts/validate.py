@@ -21,6 +21,16 @@ FOODS_JS = ROOT / "docs" / "data" / "foods.js"
 RECIPES_JS = ROOT / "docs" / "data" / "recipes.js"
 MAX_KCAL = 500
 
+# Un repas = une entrée + un plat + (un fromage) + (un dessert).
+# C'est le TOTAL qui doit tenir dans le budget, plus chaque plat pris seul.
+# On contrôle donc chaque composant, puis une composition complète typique.
+PLATS_COMPLETS = [
+    ("plat seul + fromage + dessert", ["plat", "fromage", "dessert"]),
+    ("entrée + plat", ["entree", "plat"]),
+    ("plat + dessert", ["plat", "dessert"]),
+    ("repas complet", ["entree", "plat", "fromage", "dessert"]),
+]
+
 # Caractères hors alphabet latin : le CJK coréen et les ponctutions
 # asiatiques signalent quasi toujours un texte corrompu.
 CARACTERES_ETRANGERS = re.compile(r"[\u3000-\u9fff\uff00-\uffef]")
@@ -109,6 +119,7 @@ def main() -> int:
 
     seen_recipe: set[str] = set()
     total_recipes = 0
+    par_type: dict[str, list] = {}
 
     for recipe in recipes:
         rid = recipe.get("id")
@@ -149,15 +160,19 @@ def main() -> int:
             )
 
         per_serving = total_kcal / servings
-        status = "OK " if per_serving < MAX_KCAL else "HORS"
-        if per_serving >= MAX_KCAL:
+        typ = recipe.get("meal") or "plat"
+        par_type.setdefault(typ, []).append((rid, recipe.get("name"), per_serving))
+
+        # Chaque composant doit pouvoir tenir seul dans le budget :
+        # au-delà, il ne rentrera jamais dans un repas.
+        if per_serving > MAX_KCAL:
             errors.append(
-                "Recette %s (%s) : %.0f kcal/portion, seuil < %d"
-                % (rid, recipe.get("name"), per_serving, MAX_KCAL)
+                "%s : %s (%s) : %.0f kcal, trop lourd pour un composant de repas (max %d)"
+                % (rid, typ, recipe.get("name"), per_serving, MAX_KCAL)
             )
-        elif per_serving > MAX_KCAL * 0.92:
+        elif per_serving > MAX_KCAL * 0.9:
             warnings.append(
-                "Recette %s : %.0f kcal/portion, proche du seuil" % (rid, per_serving)
+                "%s : %.0f kcal, peu de place pour le reste du repas" % (rid, per_serving)
             )
         total_recipes += 1
 
@@ -168,10 +183,42 @@ def main() -> int:
 
     print("Recettes : %d" % total_recipes)
 
+    # --- contrôle de la composition des repas
+    print("-" * 60)
+    for typ in ("entree", "plat", "fromage", "dessert"):
+        n = len(par_type.get(typ, []))
+        if not n:
+            errors.append("Aucun plat de type « %s » : le repas ne peut pas être composé" % typ)
+            continue
+        fourchettes = sorted(v for _, _, v in par_type[typ])
+        print("  %-8s %2d plats | de %.0f à %.0f kcal"
+              % (typ, n, fourchettes[0], fourchettes[-1]))
+
+    # Un repas doit rester constructible dans le budget : pour chaque forme
+    # de repas, on additionne les composants les plus légers de chaque poste.
+    for libelle, types in PLATS_COMPLETS:
+        if any(not par_type.get(t) for t in types):
+            manquants = [t for t in types if not par_type.get(t)]
+            errors.append("Composition « %s » : aucun plat de type %s"
+                          % (libelle, ", ".join(manquants)))
+            continue
+        legs = []
+        for typ in types:
+            # le plus léger disponible pour ce poste
+            legs.append(sorted(v for _, _, v in par_type[typ])[0])
+        total = sum(legs)
+        if total > MAX_KCAL:
+            errors.append(
+                "Composition « %s » : même la plus légère possible (%s) fait %.0f kcal, "
+                "au-dessus de %d" % (libelle, " + ".join("%.0f" % v for v in legs),
+                                     total, MAX_KCAL)
+            )
+        else:
+            print("  %-26s à partir de %.0f kcal" % (libelle, total))
+
     unused = sorted(set(by_id) - {
         i.get("id") for r in recipes for i in (r.get("ing") or [])
     })
-    #（在 catalogue 中合理存在未被使用项）
     if unused:
         print("Aliments du catalogue non utilisés dans une recette : %d" % len(unused))
 
@@ -185,7 +232,9 @@ def main() -> int:
         print("-" * 60)
         print("%d erreur(s), %d avertissement(s)" % (len(errors), len(warnings)))
         return 1
-    print("Tout est valide : %d recettes, toutes < %d kcal/portion." % (total_recipes, MAX_KCAL))
+    print("-" * 60)
+    print("Tout est valide : %d plats, chaque composant tient dans le budget de %d kcal."
+          % (total_recipes, MAX_KCAL))
     return 0
 
 

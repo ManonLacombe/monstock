@@ -298,6 +298,81 @@ input:focus, select:focus, textarea:focus {
   margin-top: 6px;
 }
 
+/* ------------------------------------------------- COMPOSEUR DE REPAS */
+.budget {
+  background: var(--blanc);
+  border-radius: var(--rayon);
+  padding: 14px;
+  margin-bottom: 12px;
+  box-shadow: var(--ombre);
+}
+.budget strong { font-size: 1.5rem; }
+.budget-ok { border-left: 5px solid var(--vert); }
+.budget-alerte { border-left: 5px solid var(--rouge); background: var(--rouge-clair); }
+
+.jauge {
+  height: 9px;
+  border-radius: 999px;
+  background: var(--gris-clair);
+  overflow: hidden;
+  margin-top: 10px;
+}
+.jauge-remplie {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--vert);
+  transition: width .25s ease;
+}
+.budget-alerte .jauge-remplie { background: var(--rouge); }
+
+.poste {
+  background: var(--blanc);
+  border-radius: var(--rayon);
+  padding: 13px 14px;
+  margin-bottom: 10px;
+  box-shadow: var(--ombre);
+}
+.poste-rempli { border-left: 4px solid var(--vert); }
+
+.poste-tete {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.poste-nom {
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--gris);
+}
+.poste-kcal { font-size: .82rem; color: var(--orange); font-weight: 600; white-space: nowrap; }
+
+.choix-poste {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  border-top: 1px solid var(--gris-clair);
+  background: none;
+  padding: 9px 0;
+  font-size: .87rem;
+  font-family: inherit;
+  color: var(--texte);
+  cursor: pointer;
+}
+.choix-poste:first-child { border-top: 0; }
+.choix-poste:active { background: var(--vert-clair); }
+.choix-poste .kcal-mini { color: var(--gris); font-size: .76rem; white-space: nowrap; }
+
+.poste-choisi { font-size: .9rem; }
+.poste-vide .aide, .poste-vide > span { display: block; }
+
 /* ---------------------------------------------------------- scanner */
 .scanner { position: relative; }
 .scanner video { display: block; }

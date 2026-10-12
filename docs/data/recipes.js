@@ -7,6 +7,7 @@ window.MS_RECIPES = [
   // ============================================================ VOLAILLE
   {
     id: 'poulet_courgette_riz', name: 'Poulet sauté aux courgettes', cat: 'volaille',
+    meal: 'plat',
     desc: 'Rapide et léger, parfait pour utiliser des courgettes un peu molles.', time: 20, serv: 1,
     ing: [
       { id: 'poulet_cru', q: 150 }, { id: 'courgette', q: 200 }, { id: 'oignon', q: 50 },
@@ -21,6 +22,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'poulet_curry_legumes', name: 'Poulet au curry de légumes', cat: 'volaille',
+    meal: 'plat',
     desc: 'Un curry de légumes parfumé, relevé et fondant.', time: 30, serv: 2,
     ing: [
       { id: 'poulet_cru', q: 200 }, { id: 'carotte', q: 200 }, { id: 'poivron', q: 150 },
@@ -36,6 +38,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'poulet_poireaux_quinoa', name: 'Poulet aux poireaux et quinoa', cat: 'volaille',
+    meal: 'plat',
     desc: 'Les poireaux fondants épongent le gras du poulet.', time: 30, serv: 2,
     ing: [
       { id: 'poulet_cru', q: 250 }, { id: 'poireaux', q: 250 }, { id: 'quinoa', q: 200 },
@@ -50,6 +53,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'poulet_farci_tomates', name: 'Poulet farci aux tomates', cat: 'volaille',
+    meal: 'plat',
     desc: 'Un plat unique qui sent le thym.', time: 45, serv: 2,
     ing: [
       { id: 'poulet_cru', q: 300 }, { id: 'tomate', q: 400 }, { id: 'oignon', q: 100 },
@@ -64,6 +68,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'poulet_salade_adobe', name: 'Salade de poulet crudités', cat: 'volaille',
+    meal: 'plat',
     desc: 'La recette la plus fraîche pour vider un bac à légumes.', time: 15, serv: 1,
     ing: [
       { id: 'poulet_blanc', q: 150 }, { id: 'tomate', q: 100 }, { id: 'concombre', q: 100 },
@@ -78,6 +83,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'dinde_carottes_patates', name: 'Dinde rôtie aux carottes', cat: 'volaille',
+    meal: 'plat',
     desc: 'Four familial, très peu de matière grasse ajoutée.', time: 60, serv: 3,
     ing: [
       { id: 'dinde', q: 350 }, { id: 'carotte', q: 400 }, { id: 'pomme_de_terre', q: 400 },
@@ -92,6 +98,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'dinde_facon_paella', name: 'Dinde façon paella', cat: 'volaille',
+    meal: 'plat',
     desc: 'Un seul wok, tout y passe.', time: 35, serv: 2,
     ing: [
       { id: 'dinde', q: 250 }, { id: 'riz', q: 200 }, { id: 'poivron', q: 150 },
@@ -109,6 +116,7 @@ window.MS_RECIPES = [
   // ============================================================ POISSON & FRUITS DE MER
   {
     id: 'cabillaud_poireaux', name: 'Cabillaud en brochettes de poireaux', cat: 'poisson',
+    meal: 'plat',
     desc: 'Cuisson en brochettes, très douce.', time: 25, serv: 1,
     ing: [
       { id: 'cabillaud', q: 180 }, { id: 'poireaux', q: 200 }, { id: 'beurre', q: 10 },
@@ -123,6 +131,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'colin_brocoli', name: 'Colin pané et brocoli vapeur', cat: 'poisson',
+    meal: 'plat',
     desc: 'Le brocoli vert vif se mange à la vapeur douce.', time: 20, serv: 1,
     ing: [
       { id: 'colin', q: 180 }, { id: 'brocoli', q: 200 }, { id: 'farine', q: 40 },
@@ -137,6 +146,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'saumon_avocat_salade', name: 'Salade saumon, avocat, agrumes', cat: 'poisson',
+    meal: 'plat',
     desc: 'Fraîche, riche en oméga-3, prête en 10 min.', time: 10, serv: 1,
     ing: [
       { id: 'saumon', q: 120 }, { id: 'avocat', q: 60 }, { id: 'orange', q: 100 },
@@ -151,6 +161,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'thon_tomates_toast', name: 'Toast thon et tomates cerises', cat: 'poisson',
+    meal: 'plat',
     desc: 'Le déjeuner de secours quand le frigo est vide.', time: 10, serv: 1,
     ing: [
       { id: 'thon', q: 120 }, { id: 'tomate', q: 150 }, { id: 'pain', q: 60 },
@@ -165,6 +176,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'crevette_nouilles', name: 'Crevettes sautées aux légumes', cat: 'poisson',
+    meal: 'plat',
     desc: 'Un plat express, la recette du sud.', time: 18, serv: 1,
     ing: [
       { id: 'crevette', q: 150 }, { id: 'pates', q: 150 }, { id: 'poivron', q: 80 },
@@ -179,6 +191,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'poisson_gratin_courgette', name: 'Colin en gratin de courgettes', cat: 'poisson',
+    meal: 'plat',
     desc: 'Le plat du confort, allégé.', time: 40, serv: 2,
     ing: [
       { id: 'colin', q: 300 }, { id: 'courgette', q: 400 }, { id: 'pomme_de_terre', q: 250 },
@@ -193,6 +206,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'cabillaud_salsa_mangue', name: 'Cabillaud et salsa de mangue', cat: 'poisson',
+    meal: 'plat',
     desc: 'Un peu d’exotisme pour parfumer le poisson.', time: 25, serv: 2,
     ing: [
       { id: 'cabillaud', q: 300 }, { id: 'mangue', q: 150 }, { id: 'oignon', q: 80 },
@@ -206,6 +220,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'colin_legumes_poeles', name: 'Colin et légumes poêlés', cat: 'poisson',
+    meal: 'plat',
     desc: 'Wok rapide, légumes croquants.', time: 20, serv: 1,
     ing: [
       { id: 'colin', q: 180 }, { id: 'haricot_vert', q: 150 }, { id: 'carotte', q: 100 },
@@ -220,6 +235,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'maquereaux_pomme_terre', name: 'Maquereaux et pommes de terre', cat: 'poisson',
+    meal: 'plat',
     desc: 'Oméga-3 à prix doux, très rapide.', time: 20, serv: 1,
     ing: [
       { id: 'maquereaux', q: 100 }, { id: 'pomme_de_terre', q: 200 }, { id: 'oignon', q: 60 },
@@ -233,6 +249,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'poisson_bouillon_legumes', name: 'Bouillon de poisson aux légumes', cat: 'poisson',
+    meal: 'plat',
     desc: 'Réhydratant, très peu de calories.', time: 15, serv: 1,
     ing: [
       { id: 'thon', q: 100 }, { id: 'bouillon', q: 300 }, { id: 'carotte', q: 100 },
@@ -249,6 +266,7 @@ window.MS_RECIPES = [
   // ============================================================ ŒUFS
   {
     id: 'omelette_jambon', name: 'Omelette jambon et fromage', cat: 'oeufs',
+    meal: 'plat',
     desc: 'Le classique du soir, 3 min de cuisson.', time: 10, serv: 1,
     ing: [
       { id: 'oeuf', q: 150 }, { id: 'jambon', q: 50 }, { id: 'fromage_blanc', q: 40 },
@@ -263,6 +281,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'oeufs_brouilles_tomates', name: 'Œufs brouillés aux tomates', cat: 'oeufs',
+    meal: 'plat',
     desc: 'À faire avec des tomates un peu mûres.', time: 15, serv: 1,
     ing: [
       { id: 'oeuf', q: 150 }, { id: 'tomate', q: 250 }, { id: 'pain', q: 50 },
@@ -276,6 +295,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'shakshuka', name: 'Shakshuka', cat: 'oeufs',
+    meal: 'plat',
     desc: 'Œufs pochés dans une sauce tomate épicée.', time: 25, serv: 2,
     ing: [
       { id: 'oeuf', q: 200 }, { id: 'tomate', q: 400 }, { id: 'poivron', q: 150 },
@@ -291,6 +311,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'oeufs_plat_brocoli', name: 'Œufs au plat et brocoli', cat: 'oeufs',
+    meal: 'plat',
     desc: 'La recette la plus maigre de la base.', time: 15, serv: 1,
     ing: [
       { id: 'oeuf', q: 120 }, { id: 'brocoli', q: 200 }, { id: 'huile_olive', q: 6 },
@@ -304,6 +325,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'pain_perdu', name: 'Pain perdu au lait', cat: 'oeufs',
+    meal: 'plat',
     desc: 'Une bonne façon de sauver du pain rassis.', time: 15, serv: 1,
     ing: [
       { id: 'pain', q: 70 }, { id: 'oeuf', q: 100 }, { id: 'lait', q: 100 },
@@ -318,6 +340,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'creme_oeuf', name: 'Œufs en cocotte', cat: 'oeufs',
+    meal: 'plat',
     desc: 'Moelleux et prêt en 12 min.', time: 12, serv: 1,
     ing: [
       { id: 'oeuf', q: 150 }, { id: 'creme', q: 60 }, { id: 'comte', q: 25 },
@@ -333,6 +356,7 @@ window.MS_RECIPES = [
   // ============================================================ LÉGUMINEUSES & VÉGÉTARIEN
   {
     id: 'lentilles_courgette_feta', name: 'Lentilles, courgette, feta', cat: 'legumineuses',
+    meal: 'plat',
     desc: 'Un plat unique et complet, parfait tiède.', time: 30, serv: 2,
     ing: [
       { id: 'lentilles', q: 300 }, { id: 'courgette', q: 300 }, { id: 'feta', q: 80 },
@@ -347,6 +371,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'pois_chiches_brocoli', name: 'Pois chiches et brocoli', cat: 'legumineuses',
+    meal: 'plat',
     desc: 'Protéines végétales, très rassasiant.', time: 20, serv: 1,
     ing: [
       { id: 'pois_chiches', q: 120 }, { id: 'brocoli', q: 150 }, { id: 'riz', q: 100 },
@@ -360,6 +385,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'haricots_rouges_facon_chili', name: 'Haricots rouges façon chili', cat: 'legumineuses',
+    meal: 'plat',
     desc: 'Un chili sans viande, très goûteux.', time: 30, serv: 3,
     ing: [
       { id: 'haricots_rouges', q: 400 }, { id: 'tomate', q: 500 }, { id: 'oignon', q: 150 },
@@ -374,6 +400,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'soupe_lentilles', name: 'Velouté de lentilles et carottes', cat: 'legumineuses',
+    meal: 'entree',
     desc: 'Très peu de calories, très réparateur.', time: 35, serv: 4,
     ing: [
       { id: 'lentilles_seches', q: 200 }, { id: 'carotte', q: 400 }, { id: 'oignon', q: 150 },
@@ -388,6 +415,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'galette_avoine', name: 'Galettes d’avoine', cat: 'legumineuses',
+    meal: 'plat',
     desc: 'À servir avec du yaourt ou un œuf.', time: 15, serv: 2,
     ing: [
       { id: 'flocons_avoine', q: 120 }, { id: 'oeuf', q: 100 }, { id: 'banane', q: 100 },
@@ -401,6 +429,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'porridge_avoine', name: 'Porridge avoine et fruits', cat: 'legumineuses',
+    meal: 'plat',
     desc: 'Le petit-déjeuner le plus rassasiant.', time: 8, serv: 1,
     ing: [
       { id: 'flocons_avoine', q: 45 }, { id: 'lait', q: 150 }, { id: 'banane', q: 100 },
@@ -414,6 +443,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'bol_grec', name: 'Bol grec maison', cat: 'legumineuses',
+    meal: 'plat',
     desc: 'Aucune cuisson, prêt en 5 min.', time: 5, serv: 1,
     ing: [
       { id: 'yaourt_grec', q: 170 }, { id: 'fruit_rouge_mixte', q: 100 },
@@ -429,6 +459,7 @@ window.MS_RECIPES = [
   // ============================================================ CÉRÉALES
   {
     id: 'buddha_bowl_quinoa', name: 'Bowl quinoa, légumes, avocat', cat: 'cereales',
+    meal: 'plat',
     desc: 'Le repas « meal prep » par excellence.', time: 25, serv: 2,
     ing: [
       { id: 'quinoa', q: 160 }, { id: 'avocat', q: 120 }, { id: 'brocoli', q: 150 },
@@ -444,6 +475,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'risotto_champignons', name: 'Risotto aux champignons', cat: 'cereales',
+    meal: 'plat',
     desc: 'Crémeux sans matière grasse ajoutée.', time: 30, serv: 2,
     ing: [
       { id: 'riz', q: 200 }, { id: 'champignon', q: 250 }, { id: 'oignon', q: 100 },
@@ -458,6 +490,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'nouilles_champignons', name: 'Pâtes aux champignons', cat: 'cereales',
+    meal: 'plat',
     desc: 'Prêt en 15 min avec des champignons.', time: 15, serv: 2,
     ing: [
       { id: 'pates', q: 250 }, { id: 'champignon', q: 300 }, { id: 'oignon', q: 100 },
@@ -472,6 +505,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'riz_saute_legumes', name: 'Riz sauté aux légumes', cat: 'cereales',
+    meal: 'plat',
     desc: 'Une façon économique de vider le bac à légumes.', time: 15, serv: 2,
     ing: [
       { id: 'riz', q: 300 }, { id: 'carotte', q: 150 }, { id: 'haricot_vert', q: 150 },
@@ -489,6 +523,7 @@ window.MS_RECIPES = [
   // ============================================================ BŒUF
   {
     id: 'steak_hache_tomate', name: 'Steak haché tomates et oignons', cat: 'boeuf',
+    meal: 'plat',
     desc: 'Le plat du quotidien, très rassasiant.', time: 20, serv: 1,
     ing: [
       { id: 'boeuf_hache', q: 150 }, { id: 'tomate', q: 200 }, { id: 'oignon', q: 80 },
@@ -502,6 +537,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'boeuf_wok', name: 'Bœuf sauté façon wok', cat: 'boeuf',
+    meal: 'plat',
     desc: 'Rapide, parfumé et peu calorique.', time: 20, serv: 2,
     ing: [
       { id: 'boeuf_boeuf', q: 240 }, { id: 'poivron', q: 200 }, { id: 'courgette', q: 150 },
@@ -517,6 +553,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'entrecote_poireaux', name: 'Entrecôte aux poireaux', cat: 'boeuf',
+    meal: 'plat',
     desc: 'Gras mais savoureux, pour un jour sans contrainte.', time: 25, serv: 2,
     ing: [
       { id: 'entrecote', q: 220 }, { id: 'poireaux', q: 300 }, { id: 'pomme_de_terre', q: 250 },
@@ -532,6 +569,7 @@ window.MS_RECIPES = [
   // ============================================================ GRATINS & FOUR
   {
     id: 'gratin_courgette', name: 'Gratin de courgettes', cat: 'four',
+    meal: 'plat',
     desc: 'Très peu de calories, très rassasiant.', time: 45, serv: 3,
     ing: [
       { id: 'courgette', q: 800 }, { id: 'oignon', q: 100 }, { id: 'lait', q: 200 },
@@ -546,6 +584,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'tian_provencal', name: 'Tian provençal', cat: 'four',
+    meal: 'plat',
     desc: 'Des couches de légumes, très coloré.', time: 50, serv: 3,
     ing: [
       { id: 'tomate', q: 500 }, { id: 'courgette', q: 400 }, { id: 'poivron', q: 300 },
@@ -560,6 +599,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'pommes_de_terre_four', name: 'Pommes de terre rôties au four', cat: 'four',
+    meal: 'plat',
     desc: 'Base simple d’un repas complet.', time: 45, serv: 3,
     ing: [
       { id: 'pomme_de_terre', q: 700 }, { id: 'oignon_rouge', q: 100 },
@@ -574,6 +614,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'legumes_raties_four', name: 'Légumes rôtis du jardin', cat: 'four',
+    meal: 'plat',
     desc: 'Simplement bons et très simples.', time: 40, serv: 3,
     ing: [
       { id: 'courgette', q: 300 }, { id: 'poivron', q: 300 }, { id: 'patate_douce', q: 400 },
@@ -588,6 +629,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'poivrons_farcis', name: 'Poivrons farcis', cat: 'four',
+    meal: 'plat',
     desc: 'Beau look, et beaucoup de légumes.', time: 55, serv: 3,
     ing: [
       { id: 'poivron', q: 600 }, { id: 'riz', q: 200 }, { id: 'tomate', q: 400 },
@@ -604,6 +646,7 @@ window.MS_RECIPES = [
   // ============================================================ SALADES & BOUILLON
   {
     id: 'salade_verte_pois_chiches', name: 'Salade verte et pois chiches', cat: 'salade',
+    meal: 'plat',
     desc: 'Très légère, idéale le soir.', time: 10, serv: 1,
     ing: [
       { id: 'salade', q: 80 }, { id: 'pois_chiches', q: 150 }, { id: 'concombre', q: 100 },
@@ -617,6 +660,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'salade_chiens', name: 'Salade de lentilles et feta', cat: 'salade',
+    meal: 'entree',
     desc: 'Féculents + protéines, la recette qui tient.', time: 15, serv: 1,
     ing: [
       { id: 'lentilles', q: 180 }, { id: 'feta', q: 40 }, { id: 'oignon_rouge', q: 40 },
@@ -630,6 +674,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'bouillon_legumes_maison', name: 'Bouillon de légumes maison', cat: 'salade',
+    meal: 'entree',
     desc: 'Zéro calorie, à boire tiède.', time: 25, serv: 4,
     ing: [
       { id: 'carotte', q: 200 }, { id: 'poireaux', q: 150 }, { id: 'oignon', q: 100 },
@@ -644,6 +689,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'salade_comte', name: 'Salade de pommes de terre et comté', cat: 'salade',
+    meal: 'plat',
     desc: 'Un reste de repas bien construit.', time: 15, serv: 2,
     ing: [
       { id: 'pomme_de_terre', q: 400 }, { id: 'comte', q: 60 }, { id: 'salade', q: 100 },
@@ -659,6 +705,7 @@ window.MS_RECIPES = [
   // ============================================================ DESSERTS LÉGERS
   {
     id: 'yaourt_fruits', name: 'Yaourt aux fruits', cat: 'dessert',
+    meal: 'dessert',
     desc: 'Le dessert le plus simple.', time: 3, serv: 1,
     ing: [
       { id: 'yaourt', q: 150 }, { id: 'fraise', q: 100 }, { id: 'miel', q: 10 }
@@ -670,6 +717,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'mousse_chocolat', name: 'Mousse au chocolat noir', cat: 'dessert',
+    meal: 'dessert',
     desc: 'Deux ingrédients, très chocolaté.', time: 10, serv: 2,
     ing: [
       { id: 'chocolat_noir', q: 80 }, { id: 'oeuf', q: 100 }, { id: 'sucre', q: 40 }
@@ -683,6 +731,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'salade_fruits', name: 'Salade de fruits', cat: 'dessert',
+    meal: 'dessert',
     desc: 'Zéro cuisine, zéro calories ajoutées.', time: 3, serv: 1,
     ing: [
       { id: 'orange', q: 150 }, { id: 'pomme', q: 150 }, { id: 'kiwi', q: 100 },
@@ -695,6 +744,7 @@ window.MS_RECIPES = [
   },
   {
     id: 'chips_banane', name: 'Bananes rôties', cat: 'dessert',
+    meal: 'dessert',
     desc: 'Un dessert chaud très léger.', time: 20, serv: 2,
     ing: [
       { id: 'banane', q: 300 }, { id: 'miel', q: 20 }, { id: 'amande', q: 20 }
@@ -703,6 +753,412 @@ window.MS_RECIPES = [
       'Couper les bananes en deux.',
       'Enfourner 18 min à 180 °C avec le miel.',
       'Parsemer d’amandes concassées.'
+    ]
+  },
+
+  /* ==================================================================
+     COMPOSANTS DE REPAS
+     Un repas = une entrée + un plat + (un fromage) + (un dessert),
+     le tout devant faire environ 500 kcal.
+     `meal` indique la place du plat dans le repas.
+     ================================================================== */
+
+  // ------------------------------------------------------------ ENTRÉES
+  {
+    id: 'ent_salade_tomates', name: 'Salade de tomates', cat: 'salade', meal: 'entree',
+    desc: 'L’entrée d’été la plus simple.', time: 10, serv: 1,
+    ing: [
+      { id: 'tomate', q: 250 }, { id: 'concombre', q: 100 },
+      { id: 'oignon', q: 30 }, { id: 'huile_olive', q: 8 }
+    ],
+    steps: [
+      'Couper les tomates et le concombre.',
+      'Émincer l’oignon très fin.',
+      'Assaisonner à l’huile d’olive.'
+    ]
+  },
+  {
+    id: 'ent_veloute_courge', name: 'Velouté de courge', cat: 'salade', meal: 'entree',
+    desc: 'Reconfortant et très léger.', time: 25, serv: 1,
+    ing: [
+      { id: 'courge', q: 400 }, { id: 'pomme_de_terre', q: 100 },
+      { id: 'oignon', q: 60 }, { id: 'creme', q: 30 }
+    ],
+    steps: [
+      'Faire revenir l’oignon 5 min.',
+      'Ajouter la courge et la pomme de terre avec 400 ml d’eau.',
+      'Cuire 20 min puis mixer, ajouter la crème.'
+    ]
+  },
+  {
+    id: 'ent_salade_verte', name: 'Salade verte assaisonnée', cat: 'salade', meal: 'entree',
+    desc: 'Presque rien, mais indispensable.', time: 5, serv: 1,
+    ing: [
+      { id: 'salade', q: 100 }, { id: 'tomate', q: 100 },
+      { id: 'concombre', q: 80 }, { id: 'huile_olive', q: 6 }
+    ],
+    steps: ['Laver la salade.', 'Couper les légumes.', 'Assaisonner.']
+  },
+  {
+    id: 'ent_oeufs_durs', name: 'Œufs durs à la vinaigrette', cat: 'oeufs', meal: 'entree',
+    desc: 'Rapide, proteiné, zéro cuisson.', time: 12, serv: 1,
+    ing: [
+      { id: 'oeuf', q: 120 }, { id: 'salade', q: 50 },
+      { id: 'moutarde', q: 10 }, { id: 'huile_olive', q: 8 }
+    ],
+    steps: [
+      'Cuire les œufs 9 min et les refroidir.',
+      'Écaler et couper en deux.',
+      'Servir sur salade avec une vinaigrette moutarde.'
+    ]
+  },
+  {
+    id: 'ent_chevre_miel', name: 'Tartine chèvre-miel', cat: 'four', meal: 'entree',
+    desc: 'Classique de bar, très efficace.', time: 8, serv: 1,
+    ing: [
+      { id: 'chevre', q: 40 }, { id: 'miel', q: 15 },
+      { id: 'pain', q: 40 }, { id: 'salade', q: 40 }
+    ],
+    steps: [
+      'Toaster légèrement le pain.',
+      'Tartiner de chèvre, ajouter le miel.',
+      'Servir avec quelques feuilles de salade.'
+    ]
+  },
+  {
+    id: 'ent_soupe_poireaux', name: 'Velouté de poireaux', cat: 'salade', meal: 'entree',
+    desc: 'Doux, idéal quand les poireaux traînent.', time: 30, serv: 1,
+    ing: [
+      { id: 'poireaux', q: 250 }, { id: 'pomme_de_terre', q: 120 },
+      { id: 'oignon', q: 50 }, { id: 'creme', q: 30 }
+    ],
+    steps: [
+      'Émincer les poireaux et l’oignon, les faire revenir 8 min.',
+      'Ajouter la pomme de terre et 400 ml d’eau.',
+      'Cuire 20 min, mixer, crémer.'
+    ]
+  },
+  {
+    id: 'ent_salade_lentilles', name: 'Salade de lentilles et feta', cat: 'salade', meal: 'entree',
+    desc: 'Protéiné, se prépare à l’avance.', time: 15, serv: 1,
+    ing: [
+      { id: 'lentilles', q: 180 }, { id: 'feta', q: 40 },
+      { id: 'oignon_rouge', q: 40 }, { id: 'huile_olive', q: 10 }
+    ],
+    steps: [
+      'Émincer l’oignon rouge très fin.',
+      'Mélanger lentilles, salade et oignon.',
+      'Ajouter la feta émiettée et l’huile.'
+    ]
+  },
+  {
+    id: 'ent_broccoli_tomates', name: 'Salade de brocoli et tomates', cat: 'salade', meal: 'entree',
+    desc: 'Brocoli croquant, tomates mûres.', time: 15, serv: 1,
+    ing: [
+      { id: 'brocoli', q: 200 }, { id: 'tomate', q: 150 },
+      { id: 'huile_olive', q: 8 }, { id: 'moutarde', q: 5 }
+    ],
+    steps: [
+      'Cuire le brocoli 6 min à la vapeur.',
+      'Couper les tomates.',
+      'Assaisonner à la moutarde et à l’huile.'
+    ]
+  },
+
+  // ------------------------------------------------------------ FROMAGES
+  {
+    id: 'from_camembert', name: 'Camembert', cat: 'laitages', meal: 'fromage',
+    desc: 'Une portion de 30 g.', time: 1, serv: 1,
+    ing: [{ id: 'camembert', q: 30 }],
+    steps: ['Une portion, tout simplement.']
+  },
+  {
+    id: 'from_brie', name: 'Brie', cat: 'laitages', meal: 'fromage',
+    desc: 'Une portion de 30 g.', time: 1, serv: 1,
+    ing: [{ id: 'brie', q: 30 }],
+    steps: ['Une portion, tout simplement.']
+  },
+  {
+    id: 'from_comte', name: 'Comté', cat: 'laitages', meal: 'fromage',
+    desc: 'Une portion de 25 g.', time: 1, serv: 1,
+    ing: [{ id: 'comte', q: 25 }],
+    steps: ['Une portion, tout simplement.']
+  },
+  {
+    id: 'from_comte_rape', name: 'Comté râpé', cat: 'laitages', meal: 'fromage',
+    desc: 'Une portion de 20 g.', time: 1, serv: 1,
+    ing: [{ id: 'comte_rape', q: 20 }],
+    steps: ['Une portion, tout simplement.']
+  },
+  {
+    id: 'from_chevre', name: 'Chèvre', cat: 'laitages', meal: 'fromage',
+    desc: 'Une portion de 25 g.', time: 1, serv: 1,
+    ing: [{ id: 'chevre', q: 25 }],
+    steps: ['Une portion, tout simplement.']
+  },
+  {
+    id: 'from_bleu', name: 'Bleu', cat: 'laitages', meal: 'fromage',
+    desc: 'Une portion de 25 g.', time: 1, serv: 1,
+    ing: [{ id: 'bleu', q: 25 }],
+    steps: ['Une portion, tout simplement.']
+  },
+  {
+    id: 'from_mozzarella', name: 'Mozzarella', cat: 'laitages', meal: 'fromage',
+    desc: 'Une portion de 30 g.', time: 1, serv: 1,
+    ing: [{ id: 'mozzarella', q: 30 }],
+    steps: ['Une portion, tout simplement.']
+  },
+  {
+    id: 'from_parmesan', name: 'Parmesan', cat: 'laitages', meal: 'fromage',
+    desc: 'Une portion de 15 g, râpé fin.', time: 1, serv: 1,
+    ing: [{ id: 'parmesan', q: 15 }],
+    steps: ['Une portion, tout simplement.']
+  },
+
+  // ------------------------------------------------------------ DESSERTS
+  {
+    id: 'des_yogourt_fruits_rouges', name: 'Yaourt et fruits rouges', cat: 'dessert', meal: 'dessert',
+    desc: 'Le dessert le plus simple, 5 min.', time: 5, serv: 1,
+    ing: [
+      { id: 'yaourt', q: 150 }, { id: 'fraise', q: 80 },
+      { id: 'myrtille', q: 50 }, { id: 'miel', q: 10 }
+    ],
+    steps: ['Couper les fruits.', 'Mélanger avec le yaourt et le miel.']
+  },
+  {
+    id: 'des_chocolat', name: 'Chocolat noir', cat: 'dessert', meal: 'dessert',
+    desc: 'Deux carrés, et c’est tout.', time: 1, serv: 1,
+    ing: [{ id: 'chocolat_noir', q: 15 }],
+    steps: ['Deux carrés de chocolat noir 70 %.']
+  },
+  {
+    id: 'des_compote', name: 'Compote de pommes', cat: 'dessert', meal: 'dessert',
+    desc: 'Maison, en 15 min.', time: 15, serv: 1,
+    ing: [
+      { id: 'pomme', q: 250 }, { id: 'sucre', q: 20 }, { id: 'citron', q: 10 }
+    ],
+    steps: [
+      'Éplucher et couper les pommes.',
+      'Cuire 12 min avec le sucre et un peu de jus de citron.'
+    ]
+  },
+  {
+    id: 'des_creme_anglaise', name: 'Crème anglaise', cat: 'dessert', meal: 'dessert',
+    desc: 'Un peu d’effort, vraiment très bon.', time: 15, serv: 2,
+    ing: [
+      { id: 'lait', q: 250 }, { id: 'jaune_oeuf', q: 60 }, { id: 'sucre', q: 40 }
+    ],
+    steps: [
+      'Chauffer le lait.',
+      'Blanchir les jaunes avec le sucre, ajouter le lait en filet.',
+      'Cuire à feu doux en remuant jusqu’à ébullition, laisser refroidir.'
+    ]
+  },
+  {
+    id: 'des_yaourt_grec_miel', name: 'Yaourt grec, miel et amandes', cat: 'dessert', meal: 'dessert',
+    desc: 'Gourmand mais léger.', time: 3, serv: 1,
+    ing: [
+      { id: 'yaourt_grec', q: 150 }, { id: 'miel', q: 15 }, { id: 'amande', q: 15 }
+    ],
+    steps: ['Verser le yaourt dans un bol.', 'Ajouter le miel et les amandes concassées.']
+  },
+  {
+    id: 'des_fraises_bio', name: 'Fraises et fromage blanc', cat: 'dessert', meal: 'dessert',
+    desc: 'Frais, de saison, presque sans calorie.', time: 5, serv: 1,
+    ing: [
+      { id: 'fraise', q: 150 }, { id: 'fromage_blanc', q: 100 }
+    ],
+    steps: ['Laver les fraises.', 'Servir avec le fromage blanc.']
+  },
+  {
+    id: 'des_flan', name: 'Flan au caramel', cat: 'dessert', meal: 'dessert',
+    desc: 'Régressé et pas cher.', time: 40, serv: 4,
+    ing: [
+      { id: 'oeuf', q: 150 }, { id: 'lait', q: 500 },
+      { id: 'sucre', q: 100 }, { id: 'caramel', q: 80 }
+    ],
+    steps: [
+      'Faire un caramel dans le moule.',
+      'Mélanger les œufs, le lait et le sucre, verser sur le caramel.',
+      'Cuire au bain-marie 30 min à 150 °C.'
+    ]
+  },
+
+  /* ==================================================================
+     PLATS LÉGERS (250-320 kcal)
+     Pensés pour être associés à une entrée, un fromage ou un dessert
+     sans dépasser le budget du repas.
+     ================================================================== */
+  {
+    id: 'leg_cabillaud_vapeur', name: 'Cabillaud à la vapeur et riz', cat: 'poisson', meal: 'plat',
+    desc: 'La façon la plus légère de manger du poisson.', time: 20, serv: 1,
+    ing: [
+      { id: 'cabillaud', q: 150 }, { id: 'riz', q: 120 },
+      { id: 'citron', q: 20 }, { id: 'huile_olive', q: 5 }
+    ],
+    steps: [
+      'Cuire le riz 12 min.',
+      'Plonger le cabillaud 8 min à la vapeur.',
+      'Servir avec un filet d’huile et un quartier de citron.'
+    ]
+  },
+  {
+    id: 'leg_saumon_haricots', name: 'Saumon et haricots verts', cat: 'poisson', meal: 'plat',
+    desc: 'Oméga-3 sans féculent lourd.', time: 20, serv: 1,
+    ing: [
+      { id: 'saumon', q: 130 }, { id: 'haricot_vert', q: 200 },
+      { id: 'huile_olive', q: 8 }, { id: 'citron', q: 20 }
+    ],
+    steps: [
+      'Saisir le saumon 4 min à la peau.',
+      'Cuire les haricots 8 min à la vapeur.',
+      'Servir avec un filet d’huile et le citron.'
+    ]
+  },
+  {
+    id: 'leg_omelette_legumes', name: 'Omelette aux légumes', cat: 'oeufs', meal: 'plat',
+    desc: 'Très légère, prête en 10 min.', time: 12, serv: 1,
+    ing: [
+      { id: 'oeuf', q: 120 }, { id: 'courgette', q: 100 },
+      { id: 'oignon', q: 30 }, { id: 'beurre', q: 8 }
+    ],
+    steps: [
+      'Faire revenir les légumes 5 min à la beurre.',
+      'Ajouter les œufs battus et laisser prendre.',
+      'Servir immédiatement.'
+    ]
+  },
+  {
+    id: 'leg_poulet_haricots', name: 'Poulet poêlé et haricots verts', cat: 'volaille', meal: 'plat',
+    desc: 'Protéiné et léger.', time: 20, serv: 1,
+    ing: [
+      { id: 'poulet_cru', q: 150 }, { id: 'haricot_vert', q: 200 },
+      { id: 'huile_olive', q: 8 }, { id: 'poivre', q: 1 }
+    ],
+    steps: ['Saisir le poulet 8 min.', 'Cuire les haricots 8 min à la vapeur.',
+      'Assaisonner et servir.']
+  },
+  {
+    id: 'leg_boeuf_haricots', name: 'Bœuf et haricots verts', cat: 'boeuf', meal: 'plat',
+    desc: 'Le steak qui laisse de la place.', time: 20, serv: 1,
+    ing: [
+      { id: 'boeuf_boeuf', q: 150 }, { id: 'haricot_vert', q: 200 },
+      { id: 'huile_olive', q: 8 }, { id: 'sel', q: 2 }
+    ],
+    steps: ['Griller le bœuf 3 min par face.', 'Cuire les haricots 8 min.', 'Servir.']
+  },
+  {
+    id: 'leg_oeufs_plat_pain', name: 'Œufs au plat et pain complet', cat: 'oeufs', meal: 'plat',
+    desc: 'Le repas le plus simple du monde.', time: 12, serv: 1,
+    ing: [
+      { id: 'oeuf', q: 120 }, { id: 'pain', q: 40 },
+      { id: 'beurre', q: 8 }, { id: 'sel', q: 2 }
+    ],
+    steps: ['Cuire les œufs au plat 4 min.', 'Beurrer et toaster le pain.', 'Servir.']
+  },
+  {
+    id: 'leg_crevettes_ris', name: 'Crevettes sautées et riz', cat: 'poisson', meal: 'plat',
+    desc: 'Très léger, beaucoup de goût.', time: 18, serv: 1,
+    ing: [
+      { id: 'crevette', q: 150 }, { id: 'riz', q: 120 },
+      { id: 'huile_olive', q: 8 }, { id: 'citron', q: 20 }
+    ],
+    steps: [
+      'Cuire le riz 12 min.',
+      'Sauter les crevettes 4 min à l’huile.',
+      'Ajouter le citron, servir avec le riz.'
+    ]
+  },
+  {
+    id: 'leg_dinde_legumes', name: 'Dinde sautée et légumes poêlés', cat: 'volaille', meal: 'plat',
+    desc: 'Sans féculent, très léger.', time: 20, serv: 1,
+    ing: [
+      { id: 'dinde', q: 130 }, { id: 'courgette', q: 150 },
+      { id: 'carotte', q: 80 }, { id: 'huile_olive', q: 8 }
+    ],
+    steps: [
+      'Saisir la dinde 6 min.',
+      'Ajouter les légumes 6 min à feu vif.',
+      'Assaisonner.'
+    ]
+  },
+  {
+    id: 'leg_lentilles_carottes', name: 'Lentilles et carottes', cat: 'legumineuses', meal: 'plat',
+    desc: 'Végétarien, économique, rassasiant.', time: 25, serv: 1,
+    ing: [
+      { id: 'lentilles', q: 200 }, { id: 'carotte', q: 150 },
+      { id: 'oignon', q: 50 }, { id: 'huile_olive', q: 8 }
+    ],
+    steps: [
+      'Faire revenir l’oignon 5 min.',
+      'Ajouter les lentilles, les carottes et 250 ml d’eau.',
+      'Cuire 20 min.'
+    ]
+  },
+  {
+    id: 'leg_pois_chiches_legumes', name: 'Pois chiches et légumes', cat: 'legumineuses', meal: 'plat',
+    desc: 'Protéines végétales, très léger.', time: 20, serv: 1,
+    ing: [
+      { id: 'pois_chiches', q: 150 }, { id: 'courgette', q: 150 },
+      { id: 'tomate', q: 100 }, { id: 'huile_olive', q: 8 },
+      { id: 'cumin', q: 3 }
+    ],
+    steps: [
+      'Réchauffer les pois chiches avec le cumin 5 min.',
+      'Ajouter les légumes 8 min.',
+      'Assaisonner.'
+    ]
+  },
+  {
+    id: 'leg_colin_pommes_terre', name: 'Colin et pommes de terre', cat: 'poisson', meal: 'plat',
+    desc: 'Le plat familial du jour de repos.', time: 25, serv: 1,
+    ing: [
+      { id: 'colin', q: 150 }, { id: 'pomme_de_terre', q: 200 },
+      { id: 'beurre', q: 8 }, { id: 'sel', q: 2 }
+    ],
+    steps: [
+      'Cuire les pommes de terre 15 min.',
+      'Poêler le colin 5 min à la beurre.',
+      'Servir ensemble.'
+    ]
+  },
+  {
+    id: 'leg_galette_sucre', name: 'Galettes d’avoine au yaourt', cat: 'legumineuses', meal: 'plat',
+    desc: 'Sans viande, très rassasiant.', time: 15, serv: 1,
+    ing: [
+      { id: 'flocons_avoine', q: 70 }, { id: 'oeuf', q: 60 },
+      { id: 'banane', q: 80 }, { id: 'yaourt', q: 100 }
+    ],
+    steps: [
+      'Mixer l’avoine, l’œuf et la banane.',
+      'Cuire des galettes 3 min de chaque côté.',
+      'Servir avec le yaourt.'
+    ]
+  },
+  {
+    id: 'leg_thon_tomates', name: 'Thon, tomates et haricots verts', cat: 'poisson', meal: 'plat',
+    desc: 'Sans cuisson, prêt en 10 min.', time: 10, serv: 1,
+    ing: [
+      { id: 'thon', q: 120 }, { id: 'tomate', q: 150 },
+      { id: 'haricot_vert', q: 150 }, { id: 'huile_olive', q: 8 }
+    ],
+    steps: [
+      'Cuire les haricots 8 min.',
+      'Émincer les tomates.',
+      'Mélanger le tout avec l’huile.'
+    ]
+  },
+  {
+    id: 'leg_batonnets_riz', name: 'Bâtonnets de poulet et riz', cat: 'volaille', meal: 'plat',
+    desc: 'Très léger, très rapide.', time: 15, serv: 1,
+    ing: [
+      { id: 'poulet_batonnet', q: 120 }, { id: 'riz', q: 120 },
+      { id: 'concombre', q: 100 }, { id: 'huile_olive', q: 5 }
+    ],
+    steps: [
+      'Chauffer les bâtonnets 4 min à la poêle.',
+      'Cuire le riz 12 min.',
+      'Servir avec le concombre.'
     ]
   }
 ];

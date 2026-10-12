@@ -89,6 +89,7 @@
       courses: [],
       produits: {},        // produits trouvés en ligne (Open Food Facts)
       recettes: [],        // recettes écrites par l'utilisateur
+      repas: {},           // composition en cours (type -> id de plat)
       decouverte: { derniere: null, courante: null, historique: [] },
       reglages: { kcalMax: 500, intervalleJours: 30 }
     };
@@ -115,6 +116,7 @@
     if (d.prefs && typeof d.prefs === 'object') base.prefs = d.prefs;
     if (d.produits && typeof d.produits === 'object') base.produits = d.produits;
     if (Array.isArray(d.recettes)) base.recettes = d.recettes;
+    if (d.repas && typeof d.repas === 'object') base.repas = d.repas;
     if (d.decouverte && typeof d.decouverte === 'object') {
       base.decouverte.derniere = d.decouverte.derniere || null;
       base.decouverte.courante = d.decouverte.courante || null;
@@ -403,6 +405,170 @@
     rafraichir();
   }
 
+  /* ========================================== COMPOSEUR DE REPAS */
+
+  /* Un repas = une entrée, un plat, (un fromage), (un dessert).
+   * C'est le TOTAL qui doit tenir dans le budget (~500 kcal).
+   * Chaque poste est facultatif : on ne garde que ce qui tient. */
+
+  var ORDRES_REPAS = ['entree', 'plat', 'fromage', 'dessert'];
+  var LIBELLE_REPAS = {
+    entree: 'Entrée', plat: 'Plat principal',
+    fromage: 'Fromage', dessert: 'Dessert'
+  };
+
+  var composition = {};     // type -> id du plat retenu (vide = non choisi)
+
+  function chargerComposition() {
+    composition = (etat.repas && typeof etat.repas === 'object') ? etat.repas : {};
+  }
+
+  function platsDeType(type) {
+    return toutesRecettes().filter(function (r) {
+      return (r.meal || 'plat') === type;
+    }).map(function (r) { return analyserRecette(r); })
+      .filter(function (a) { return !a.exclue; });
+  }
+
+  function platChoisi(type) {
+    var id = composition[type];
+    if (!id) return null;
+    return toutesRecettes().filter(function (r) { return r.id === id; })[0] || null;
+  }
+
+  function kcalRepas() {
+    var total = 0;
+    ORDRES_REPAS.forEach(function (t) {
+      var r = platChoisi(t);
+      if (r) total += kcalParPortion(r);
+    });
+    return Math.round(total);
+  }
+
+  /** Place les plats les plus prioritaires (péremption) sans dépasser le budget. */
+  function propositionsRepas() {
+    var budget = etat.reglages.kcalMax;
+    var parType = {};
+    ORDRES_REPAS.forEach(function (t) {
+      parType[t] = platsDeType(t).sort(function (a, b) { return b.score - a.score; });
+    });
+
+    // On part du plat principal, puis on complète tant qu'il reste de la place.
+    var choix = {};
+    var reste = budget;
+    ['plat', 'entree', 'fromage', 'dessert'].forEach(function (type) {
+      var pool = parType[type];
+      var meilleur = null;
+      for (var i = 0; i < pool.length; i++) {
+        if (pool[i].kcal <= reste) { meilleur = pool[i]; break; }
+      }
+      if (meilleur) { choix[type] = meilleur.recette.id; reste -= meilleur.kcal; }
+    });
+    return choix;
+  }
+
+  function rendreCompositeur() {
+    var zone = el('composer-repas');
+    if (!zone) return;
+    if (modeRecettes !== 'repas') { zone.hidden = true; return; }
+    zone.hidden = false;
+
+    var total = kcalRepas();
+    var budget = etat.reglages.kcalMax;
+    var reste = budget - total;
+    var pct = Math.max(0, Math.min(100, Math.round((total / budget) * 100)));
+    var etatClasse = total === 0 ? '' : (total <= budget ? 'ok' : 'alerte');
+
+    var html = '<div class="budget' + (etatClasse ? ' budget-' + etatClasse : '') + '">' +
+      '<div class="ligne"><strong>' + total + ' kcal</strong>' +
+        '<span style="color:var(--gris);font-size:.85rem">sur ' + budget + ' kcal</span>' +
+        (reste > 0 && total > 0
+          ? '<span style="flex:1;text-align:right;font-size:.85rem;color:var(--gris)">' +
+            reste + ' kcal restantes</span>' : '') +
+      '</div>' +
+      '<div class="jauge"><div class="jauge-remplie" style="width:' + pct + '%"></div></div>' +
+      (total === 0 ? '<p style="margin:10px 0 0;font-size:.86rem;color:var(--gris)">' +
+        'Compose ton repas : entrée, plat, fromage, dessert. Le total doit rester ' +
+        'sous ' + budget + ' kcal.</p>' : '') +
+    '</div>';
+
+    html += '<button class="btn btn-primary btn-block" id="btn-proposer-repas" style="margin-bottom:12px">' +
+      '✨ Proposer un repas dans mon budget</button>';
+
+    ORDRES_REPAS.forEach(function (type) {
+      var r = platChoisi(type);
+      var analyse = r ? analyserRecette(r) : null;
+      html += '<div class="poste' + (r ? ' poste-rempli' : '') + '">' +
+        '<div class="poste-tete"><span class="poste-nom">' + LIBELLE_REPAS[type] + '</span>' +
+          (r ? '<span class="poste-kcal">' + analyse.kcal + ' kcal</span>' : '') +
+        '</div>';
+
+      if (r) {
+        html += '<div class="poste-choisi">' +
+          '<div><strong>' + esc(r.name) + '</strong>' +
+            (r.desc ? '<div style="font-size:.8rem;color:var(--gris)">' + esc(r.desc) + '</div>' : '') +
+            (analyse.nbManquants
+              ? '<div style="font-size:.8rem;color:var(--orange);margin-top:3px">' +
+                analyse.nbManquants + ' ingrédient(s) manquant(s)</div>' : '') +
+          '</div>' +
+          '<div class="actions-manquant" style="margin:8px 0 0">' +
+            '<button class="btn btn-ghost" data-act="voir-poste" data-type="' + type + '">Voir</button>' +
+            '<button class="btn btn-danger" data-act="retirer-poste" data-type="' + type + '">Retirer</button>' +
+          '</div></div>';
+      } else {
+        // On ne propose que ce qui tient encore dans le budget
+        var candidats = platsDeType(type)
+          .filter(function (a) { return a.kcal <= reste || total === 0; })
+          .sort(function (a, b) { return b.score - a.score; })
+          .slice(0, 4);
+        html += '<div class="poste-vide">';
+        if (!candidats.length) {
+          html += '<span style="font-size:.83rem;color:var(--gris)">' +
+            (total === 0 ? 'Aucun plat de ce type.' : 'Plus de place dans le budget.') +
+            '</span>';
+        } else {
+          html += candidats.map(function (a) {
+            return '<button class="choix-poste" data-act="prendre-poste" ' +
+              'data-type="' + type + '" data-id="' + a.recette.id + '">' +
+              '<span>' + esc(a.recette.name) + '</span>' +
+              '<span class="kcal-mini">' + a.kcal + ' kcal</span></button>';
+          }).join('');
+        }
+        html += '</div>';
+      }
+      html += '</div>';
+    });
+
+    zone.innerHTML = html;
+
+    var b = el('btn-proposer-repas');
+    if (b) b.addEventListener('click', function () {
+      composition = propositionsRepas();
+      sauvegarderComposition();
+      rafraichir();
+    });
+    zone.querySelectorAll('[data-act]').forEach(function (n) {
+      n.addEventListener('click', function () {
+        var act = n.getAttribute('data-act');
+        if (act === 'prendre-poste') {
+          composition[n.getAttribute('data-type')] = n.getAttribute('data-id');
+        } else if (act === 'retirer-poste') {
+          delete composition[n.getAttribute('data-type')];
+        } else if (act === 'voir-poste') {
+          ouvrirRecette(n.getAttribute('data-id'));
+          return;
+        }
+        sauvegarderComposition();
+        rafraichir();
+      });
+    });
+  }
+
+  function sauvegarderComposition() {
+    etat.repas = composition;
+    sauver();
+  }
+
   /* ============================================ MES RECETTES (écriture libre) */
 
   function recettesPersonnelles() { return etat.recettes || []; }
@@ -450,6 +616,19 @@
         '<div class="champ"><label for="r-desc">Description (facultatif)</label>' +
           '<input id="r-desc" type="text" value="' + esc(r.desc || '') + '" ' +
           'placeholder="Ce que cette recette a de particulier"></div>' +
+
+        '<div class="row-actions">' +
+          '<div style="flex:1"><label for="r-type">Type de plat</label>' +
+            '<select id="r-type">' +
+              ORDRES_REPAS.map(function (t) {
+                return '<option value="' + t + '"' +
+                  ((r.meal || 'plat') === t ? ' selected' : '') + '>' +
+                  LIBELLE_REPAS[t] + '</option>';
+              }).join('') +
+            '</select>' +
+            '<div class="aide">Détermine à quel moment de le repas la recette est servie.</div>' +
+          '</div>' +
+        '</div>' +
 
         '<div class="row-actions">' +
           '<div style="flex:1"><label for="r-serv">Portions</label>' +
@@ -586,6 +765,7 @@
       if (!ingredients.length) { toast('Ajoute au moins un ingrédient'); return; }
 
       r.desc = el('r-desc').value.trim();
+      r.meal = el('r-type').value || 'plat';
       r.serv = Math.max(1, Number(el('r-serv').value) || 1);
       r.time = Math.max(1, Number(el('r-time').value) || 20);
       r.ing = ingredients.filter(function (i) { return i.q > 0; });
@@ -947,8 +1127,33 @@
   }
 
   var filtreRecette = 'tout';
+  var modeRecettes = 'repas';
 
   function rendreRecettes() {
+    var fmode = el('mode-filtres');
+    if (fmode) {
+      fmode.innerHTML =
+        '<button class="filtre' + (modeRecettes === 'repas' ? ' is-actif' : '') +
+          '" data-mode="repas">🍽 Repas complet</button>' +
+        '<button class="filtre' + (modeRecettes === 'liste' ? ' is-actif' : '') +
+          '" data-mode="liste">📋 Liste de plats</button>';
+      fmode.querySelectorAll('[data-mode]').forEach(function (n) {
+        n.addEventListener('click', function () {
+          modeRecettes = n.getAttribute('data-mode');
+          rendreRecettes();
+        });
+      });
+    }
+
+    if (modeRecettes === 'repas') {
+      rendreCompositeur();
+      el('recipe-filters').hidden = true;
+      el('recipe-list').innerHTML = '';
+      return;
+    }
+    rendreCompositeur();
+    el('recipe-filters').hidden = false;
+
     var analyses = toutesRecettes().map(function (r) { return analyserRecette(r); })
       .filter(function (a) { return !a.exclue; })
       .filter(function (a) {
@@ -1614,6 +1819,7 @@
 
   function init() {
     charger();
+    chargerComposition();
 
     document.querySelectorAll('.tab').forEach(function (t) {
       t.addEventListener('click', function () { aller(t.getAttribute('data-screen')); });

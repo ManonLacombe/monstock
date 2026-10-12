@@ -129,6 +129,7 @@ window.MS_FOODS = [
   { id: 'huile_sesame', name: 'Huile de sésame', cat: 'condiments', kcal: 884, perish: 730, fresh: false, unit: 'ml' },
   { id: 'sucre', name: 'Sucre', cat: 'sucrants', kcal: 400, perish: null, fresh: false, unit: 'g' },
   { id: 'miel', name: 'Miel', cat: 'sucrants', kcal: 304, perish: null, fresh: false, unit: 'g' },
+  { id: 'caramel', name: 'Caramel', cat: 'sucrants', kcal: 350, perish: 365, fresh: false, unit: 'g' },
   { id: 'chocolat_noir', name: 'Chocolat noir 70%', cat: 'sucrants', kcal: 546, perish: null, fresh: false, unit: 'g' },
   { id: 'amande', name: 'Amandes', cat: 'sucrants', kcal: 579, perish: 180, fresh: false, unit: 'g' },
   { id: 'noix', name: 'Noix', cat: 'sucrants', kcal: 654, perish: 120, fresh: false, unit: 'g' },
