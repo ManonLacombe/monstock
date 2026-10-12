@@ -70,7 +70,22 @@ pouvoir composer un repas complet à quatre postes.
 Le second onglet, **📋 Liste de plats**, donne accès à tous les plats
 individuellement, avec les filtres habituels.
 
-### 3. « Tu l'as oublié ? »
+### 3. « J'ai mangé »
+Pour tout ce qui ne vient pas d'une recette proposée — un morceau de pain,
+une envie de dernière minute, un aperçu que tu as fini.
+
+- **🍽 J'ai mangé** en haut de l'écran *Stock* : cherche l'aliment, indique
+  les grammes, le stock diminue.
+- Le même bouton existe sur **chaque ligne** de ton stock, avec la quantité
+  déjà remplie.
+- Les aliments que tu as réellement en stock remontent en premier dans la liste.
+- Si l'aliment n'est pas dans ton stock, l'app ne simule rien : elle propose
+  de l'ajouter d'abord, à la bonne quantité.
+
+Restent dans le stock : `400 g → 250 g` après avoir mangé 150 g.
+Consommer exactement tout retire proprement la ligne.
+
+### 4. « Tu l'as oublié ? »
 Quand une recette réclame un ingrédient que tu n'as pas noté, l'application
 **te pose la question** au lieu de l'ignorer :
 
@@ -87,7 +102,7 @@ Pour chaque ingrédient manquant, trois réponses :
 C'est la réponse au principal oubli : l'aliment était bien chez toi, mais pas
 dans l'application.
 
-### 4. 🧪 Une découverte par mois
+### 5. 🧪 Une découverte par mois
 Une fois par mois, l'application propose **un aliment que tu n'as jamais goûté**,
 le place **dans un repas complet** (< 500 kcal) et l'ajoute à ta liste de courses.
 Une fois le goût donné :
@@ -97,17 +112,17 @@ Une fois le goût donné :
 - 🤷 **Je ne sais pas** → **reproposé une fois** au mois suivant ;
   s'il n'y a toujours pas d'avis, l'aliment sort du cycle.
 
-### 5. 💚 Mes goûts
+### 6. 💚 Mes goûts
 La liste de tous les aliments notés : **aimés**, **pas aimés**, **à retester**,
 **à éviter**. Chaque entrée se corrige ou se supprime en un geste.
 Les aliments que tu n'aimes pas sont **exclus** de toutes les recettes.
 
-### 6. 🛒 Liste de courses
+### 7. 🛒 Liste de courses
  Alimentes automatiquement :
 - les ingrédients manquants des recettes que tu ouvres ;
 - l'aliment à goûter du mois.
 
-### 7. ⚙️ Réglages
+### 8. ⚙️ Réglages
 Plafond de calories (200–900), fréquence de la découverte (défaut **30 jours**),
 **export / import** d'une sauvegarde JSON, et effacement complet.
 
@@ -124,6 +139,7 @@ L'application a **deux sorties réseau**, toutes deux sur demande explicite :
 | Fonction | Ce qui sort de l'appareil | Pourquoi |
 |---|---|---|
 | 📷 **Scan d'un code-barres** | le code-barres scanné | interroge la base ouverte [Open Food Facts](https://world.openfoodfacts.fr) pour récupérer nom, calories et magasin |
+| — saisie manuelle du code | le numéro saisi | même appel, quand le code-barres est illisible |
 | — rien d'autre | — | aucune statistics, aucun compte, aucun envoi automatique |
 
 La base Open Food Facts est un projet libre : elle ne reçoit **ni ton nom,

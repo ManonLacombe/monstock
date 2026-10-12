@@ -234,6 +234,7 @@
           '<div style="text-align:right">' + puceUrgence(l.expiry) + '</div>' +
         '</div>' +
         '<div class="actions-manquant">' +
+          '<button class="btn btn-accent" data-act="manger" data-sid="' + l.sid + '">🍽 J’ai mangé</button>' +
           '<button class="btn btn-ghost" data-act="ajuster" data-sid="' + l.sid + '">Modifier</button>' +
           '<button class="btn btn-danger" data-act="retirer" data-sid="' + l.sid + '">Retirer</button>' +
         '</div>' +
@@ -345,18 +346,20 @@
     proposerDate();
   }
 
-  /** Récupère un produit scanné et le sélectionne dans le formulaire. */
+  /** Récupère un produit scanné et le place dans la fiche d'ajout. */
   function produitScanne(p) {
     enregistrerProduit(p);
-    choisir(p.id);
-    // on propose le poids du conditionnement quand il est lisible
+    // Le scanner avait remplacé la fiche d'ajout par son propre écran :
+    // il faut la rouvrir, sinon l'utilisateur n'a plus rien à remplir.
+    var poids = null;
     var m = p.conditionnement && String(p.conditionnement)
       .replace(',', '.').match(/([\d]+(?:[.,]\d+)?)\s*(kg|g)\b/i);
     if (m) {
       var n = parseFloat(String(m[1]).replace(',', '.'));
-      var champ = el('m-qte');
-      if (champ) champ.value = Math.round(m[2].toLowerCase() === 'kg' ? n * 1000 : n);
+      poids = Math.round(m[2].toLowerCase() === 'kg' ? n * 1000 : n);
     }
+    ouvrirModaleAjoutAvecQuantite(p.id, poids || 100);
+    toast(p.name + ' — vérifie la quantité et valide');
   }
 
   function afficherChoisi() {
@@ -916,44 +919,90 @@
    * Utilise l'API native BarcodeDetector quand elle existe (Android, Chrome),
    * sinon jsQR embarqué.
    */
+  /** Un code-barres valide est un simple nombre de 8 à 14 chiffres. */
+  function codeValide(code) {
+    return /^[0-9]{8,14}$/.test(String(code || '').trim());
+  }
+
+  /**
+   * Lit un code-barres avec l'appareil photo.
+   * API BarcodeDetector native quand elle existe (Android, Chrome),
+   * sinon jsQR embarqué.
+   *
+   * Deux garde-fous indispensables : on n'analyse qu'une fois la vidéo
+   * réellement diffusée (sinon une frame vide est décodée en bruit), et on
+   * n'accepte un code qu'après deux lectures identiques consécutives.
+   */
   function scannerCodeBarres(rappel) {
-    var zone = document.createElement('div');
-    zone.innerHTML =
+    ouvrirModale('Scanner un code-barres',
       '<div class="scanner"><video id="scan-video" playsinline muted ' +
         'style="width:100%;border-radius:12px;background:#000"></video>' +
         '<div class="scan-cadre"></div></div>' +
-      '<p class="aide" id="scan-msg">Cadre le code-barres dans le rectangle. ' +
-        'Le scan est automatique.</p>';
-
-    ouvrirModale('Scanner un code-barres', '');
-    var corps = el('modal-body');
-    corps.innerHTML = '';
-    corps.appendChild(zone);
+      '<p class="aide" id="scan-msg">Démarrage de la caméra…</p>' +
+      '<div class="actions-manquant" style="margin-top:12px">' +
+        '<button class="btn btn-ghost" id="scan-manuel">Saisir le code à la main</button>' +
+      '</div>');
 
     var msg = el('scan-msg');
     var video = el('scan-video');
     var arrete = false;
+    var dernier = null, repetitions = 0;
 
-    function fini(code) {
+    // même validation pour les deux moteurs de décodage
+    function proposer(brut) {
+      var code = String(brut || '').replace(/\D/g, '');
+      if (!codeValide(code)) return false;
+      if (code === dernier) {
+        repetitions++;
+      } else {
+        dernier = code;
+        repetitions = 1;
+      }
+      // deux lectures identiques : on évite les faux positifs de bruit
+      if (repetitions >= 2) { accepte(code); return true; }
+      msg.textContent = 'Code détecté : ' + code + ' — confirmation…';
+      return true;
+    }
+
+    function accepte(code) {
       if (arrete) return;
       arrete = true;
       arreterCamera();
       msg.textContent = 'Code ' + code + ' — recherche du produit…';
       chercherParCode(code, function (produit, erreur) {
         if (produit) {
-          fermerModale();
+          // le rappel rouvre la fiche d'ajout : pas besoin de fermer ici,
+          // et surtout il ne faut pas laisser l'utilisateur sans formulaire
           rappel(produit);
         } else {
-          msg.innerHTML = '<strong style="color:var(--rouge)">' + esc(erreur) + '</strong><br>' +
-            '<button class="btn btn-ghost" id="scan-retry" style="margin-top:8px">Réessayer</button>';
-          var r = el('scan-retry');
-          if (r) r.addEventListener('click', function () {
-            fermerModale();
-            scannerCodeBarres(rappel);
-          });
+          msg.innerHTML = '<strong style="color:var(--rouge)">' + esc(erreur) + '</strong>' +
+            '<div class="aide">Code scanné : ' + esc(code) + '</div>';
+          brancherReprise();
         }
       });
     }
+
+    function brancherReprise() {
+      var r = el('scan-retry');
+      if (r) r.addEventListener('click', function () {
+        dernier = null; repetitions = 0;
+        r.remove();
+        scannerCodeBarres(rappel);
+      });
+    }
+
+    el('scan-manuel').addEventListener('click', function () {
+      arreterCamera();
+      ouvrirModale('Saisir le code-barres',
+        '<div class="champ"><label for="code-barre">Numéro sous le code-barres</label>' +
+        '<input id="code-barre" type="tel" inputmode="numeric" placeholder="Ex. 3017620422003"></div>' +
+        '<button class="btn btn-primary btn-block" id="code-valider">Rechercher ce produit</button>');
+      el('code-valider').addEventListener('click', function () {
+        var c = el('code-barre').value.replace(/\D/g, '');
+        if (!codeValide(c)) { toast('Code-barres invalide'); return; }
+        accepte(c);
+      });
+    });
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       msg.innerHTML = '<strong style="color:var(--rouge)">Caméra indisponible</strong><br>' +
@@ -962,49 +1011,65 @@
     }
 
     navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment' }
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 } }
     }).then(function (flux) {
       if (arrete) { flux.getTracks().forEach(function (t) { t.stop(); }); return; }
       fluxVideo = flux;
       video.srcObject = flux;
-      video.play();
 
-      if ('BarcodeDetector' in window) {
-        // API native : légère et précise
-        var detecteur = new window.BarcodeDetector({
-          formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128']
-        });
-        var boucler = function () {
-          if (arrete) return;
-          detecteur.detect(video).then(function (codes) {
-            if (codes && codes.length) fini(codes[0].rawValue);
-            else requestAnimationFrame(boucler);
-          }).catch(function () { requestAnimationFrame(boucler); });
-        };
-        requestAnimationFrame(boucler);
-      } else {
-        // Repli : jsQR, embarqué dans le dépôt
-        if (typeof window.jsQR !== 'function') {
-          chargerJsQR(function (charge) {
-            if (!charge) {
-              msg.innerHTML = '<strong style="color:var(--rouge)">Décodeur indisponible</strong>';
-              return;
-            }
-            boucleJsQR(video, fini, function (e) {
-              if (!arrete) msg.innerHTML = '<strong style="color:var(--rouge)">' +
-                'Caméra inaccessible</strong><br>Autorise la caméra dans les réglages du navigateur.';
-            });
+      // On n'analyse qu'une fois la vidéo diffusée : avant, le décodeur
+      // travaille sur une image vide et renvoie n'importe quoi.
+      video.addEventListener('playing', function () {
+        if (arrete) return;
+        msg.textContent = 'Cadre le code-barres dans le rectangle. Le scan est automatique.';
+
+        if ('BarcodeDetector' in window) {
+          var detecteur = new window.BarcodeDetector({
+            formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e']
           });
+          var boucleNative = function () {
+            if (arrete) return;
+            detecteur.detect(video).then(function (codes) {
+              if (codes && codes.length) {
+                codes.forEach(function (c) { if (proposer(c.rawValue)) return; });
+              }
+              requestAnimationFrame(boucleNative);
+            }).catch(function () { requestAnimationFrame(boucleNative); });
+          };
+          requestAnimationFrame(boucleNative);
         } else {
-          boucleJsQR(video, fini, function (e) {
-            if (!arrete) msg.innerHTML = '<strong style="color:var(--rouge)">' +
-              'Caméra inaccessible</strong><br>Autorise la caméra dans les réglages du navigateur.';
-          });
+          if (typeof window.jsQR !== 'function') {
+            msg.textContent = 'Chargement du décodeur…';
+            chargerJsQR(function (charge) {
+              if (arrete) return;
+              if (!charge) {
+                msg.innerHTML = '<strong style="color:var(--rouge)">Décodeur indisponible</strong>';
+                return;
+              }
+              msg.textContent = 'Cadre le code-barres dans le rectangle.';
+              boucleJsQR(video, proposer, function () {
+                if (!arrete) msg.innerHTML = '<strong style="color:var(--rouge)">' +
+                  'Caméra inaccessible</strong><br>Autorise la caméra dans les réglages.';
+              });
+            });
+          } else {
+            msg.textContent = 'Cadre le code-barres dans le rectangle.';
+            boucleJsQR(video, proposer, function () {
+              if (!arrete) msg.innerHTML = '<strong style="color:var(--rouge)">' +
+                'Caméra inaccessible</strong><br>Autorise la caméra dans les réglages.';
+            });
+          }
         }
-      }
-    }).catch(function (e) {
+      });
+
+      var demarrage = video.play();
+      if (demarrage && demarrage.catch) demarrage.catch(function () {
+        if (!arrete) msg.innerHTML = '<strong style="color:var(--rouge)">' +
+          'Caméra refusée</strong><br>Autorise la caméra, ou saisis le code à la main.';
+      });
+    }).catch(function () {
       msg.innerHTML = '<strong style="color:var(--rouge)">Caméra refusée</strong><br>' +
-        'Autorise la caméra pour ce site, ou ajoute l’aliment à la main.';
+        'Autorise la caméra pour ce site, ou saisis le code à la main.';
     });
   }
 
@@ -1038,6 +1103,158 @@
       requestAnimationFrame(boucler);
     };
     requestAnimationFrame(boucler);
+  }
+
+  /* ============================================ « J'AI MANGÉ » */
+
+  /**
+   * Sort une quantité du stock sans passer par une recette.
+   * Utile quand tu as mangé un morceau de pain, ou une envie qui n'est
+   * dans aucun repas proposé.
+   */
+  function modaleConsommer(foodId, nomLigne, qteLigne) {
+    var id = foodId || null;
+
+    ouvrirModale('J’ai mangé',
+      '<div class="champ"><label for="c-recherche">Aliment consommé</label>' +
+        '<input id="c-recherche" type="search" placeholder="Rechercher un aliment…" autocomplete="off">' +
+        '<div class="suggestions" id="c-suggestions"></div></div>' +
+      '<div id="c-choisi"></div>' +
+      '<div id="c-champs" hidden>' +
+        '<div class="champ"><label for="c-qte">Quantité consommée (g ou ml)</label>' +
+          '<input id="c-qte" type="number" inputmode="decimal" min="0" step="1"></div>' +
+        '<div class="champ" id="c-restes"></div>' +
+        '<button class="btn btn-ghost btn-block" id="c-ajout-stock" hidden></button>' +
+        '<button class="btn btn-primary btn-block" id="c-valider">Sortir du stock</button>' +
+      '</div>');
+
+    function stockDe(fid) {
+      return (etat.stock.filter(function (l) { return l.foodId === fid; })
+        .reduce(function (s, l) { return s + l.qty; }, 0));
+    }
+
+    function afficher() {
+      var a = id ? aliment(id) : null;
+      if (!a) { el('c-choisi').innerHTML = ''; el('c-champs').hidden = true; return; }
+      var dispo = stockDe(id);
+      el('c-choisi').innerHTML = '<div class="carte" style="padding:10px;margin:10px 0 0;' +
+        'box-shadow:none;background:' + (dispo > 0 ? 'var(--vert-clair)' : 'var(--orange-clair)') +
+        '"><strong>' + esc(a.name) + '</strong> — ' +
+        (dispo > 0
+          ? 'en stock : ' + fmtQte(dispo) + ' ' + esc(a.unit)
+          : '<span style="color:var(--orange)">pas dans ton stock</span>') + '</div>';
+      el('c-champs').hidden = false;
+      if (!el('c-qte').value) el('c-qte').value = dispo > 0 ? Math.round(dispo) : 100;
+      majRestes();
+    }
+
+    function majRestes() {
+      var a = id ? aliment(id) : null;
+      if (!a) return;
+      var q = Math.max(0, Number(el('c-qte').value) || 0);
+      var dispo = stockDe(id);
+      var reste = dispo - q;
+      var zone = el('c-restes');
+      var valider = el('c-valider');
+
+      if (dispo <= 0) {
+        // Rien à retirer : on ne simule pas, on propose de l'ajouter.
+        zone.innerHTML = '<div class="aide" style="color:var(--orange)">' +
+          'Cet aliment n’est pas dans ton stock : ajoute-le d’abord pour pouvoir ' +
+          'le sortir à la bonne quantité.</div>';
+        el('c-ajout-stock').hidden = false;
+        el('c-ajout-stock').textContent = '+ Ajouter ' + fmtQte(q) + ' ' + a.unit +
+          ' au stock';
+        el('c-ajout-stock').onclick = function () {
+          ouvrirModaleAjoutAvecQuantite(a.id, q);
+        };
+        valider.hidden = true;
+        return;
+      }
+
+      el('c-ajout-stock').hidden = true;
+      valider.hidden = false;
+
+      if (reste > 0) {
+        zone.innerHTML = '<div class="aide">Il restera ' + fmtQte(reste) + ' ' +
+          esc(a.unit) + ' en stock.</div>';
+      } else if (reste === 0) {
+        zone.innerHTML = '<div class="aide">Le stock de ' + esc(a.name) +
+          ' sera entièrement consommé.</div>';
+      } else {
+        zone.innerHTML = '<div class="aide" style="color:var(--orange)">' +
+          'Tu n’as que ' + fmtQte(dispo) + ' ' + esc(a.unit) +
+          ' en stock : la ligne sera retirée entièrement.</div>';
+      }
+    }
+
+    function liste(t) {
+      var q = String(t || '').trim().toLowerCase();
+      var pool = CATALOGUE.concat(
+        Object.keys(etat.produits || {}).map(function (k) { return etat.produits[k]; })
+      ).filter(function (a) {
+        if (!q) return true;
+        return a.name.toLowerCase().indexOf(q) >= 0 || (a.marque || '').toLowerCase().indexOf(q) >= 0;
+      }).slice(0, 40);
+
+      // les aliments réellement en stock remontent d'abord
+      pool.sort(function (x, y) { return stockDe(y.id) - stockDe(x.id); });
+
+      el('c-suggestions').innerHTML = pool.map(function (a) {
+        var d = stockDe(a.id);
+        return '<div class="suggestion" data-food="' + a.id + '"><span>' + esc(a.name) +
+          (d > 0 ? ' <span class="puce puce-ok">' + fmtQte(d) + ' en stock</span>' : '') +
+          '</span><span class="kcal-mini">' + (a.kcal || '?') + ' kcal/100' + esc(a.unit) +
+          '</span></div>';
+      }).join('');
+
+      el('c-suggestions').querySelectorAll('[data-food]').forEach(function (n) {
+        n.addEventListener('click', function () {
+          id = n.getAttribute('data-food');
+          el('c-recherche').value = nomAliment(id);
+          el('c-suggestions').innerHTML = '';
+          afficher();
+        });
+      });
+    }
+
+    if (id) el('c-recherche').value = nomLigne || nomAliment(id);
+    liste(id ? '' : '');
+    afficher();
+
+    el('c-recherche').addEventListener('input', function () {
+      id = null;
+      el('c-champs').hidden = true;
+      el('c-choisi').innerHTML = '';
+      liste(el('c-recherche').value);
+    });
+    el('c-qte').addEventListener('input', majRestes);
+
+    el('c-valider').addEventListener('click', function () {
+      if (!id) { toast('Choisis un aliment'); return; }
+      var q = Math.max(0, Number(el('c-qte').value) || 0);
+      if (q <= 0) { toast('Indique une quantité'); return; }
+
+      var restant = q;
+      for (var i = etat.stock.length - 1; i >= 0 && restant > 0; i--) {
+        var l = etat.stock[i];
+        if (l.foodId !== id) continue;
+        if (l.qty <= restant) { restant -= l.qty; etat.stock.splice(i, 1); }
+        else { l.qty -= restant; restant = 0; }
+      }
+      sauver();
+      fermerModale();
+      rafraichir();
+      toast('-' + fmtQte(q) + ' ' + esc(nomAliment(id)) + ' sorti du stock');
+    });
+  }
+
+  /** Ouvre la fiche d'ajout avec un aliment et une quantité pré-remplis. */
+  function ouvrirModaleAjoutAvecQuantite(foodId, qte) {
+    modaleAjoutAliment(null);
+    choisir(foodId);
+    var champ = el('m-qte');
+    if (champ && qte) champ.value = qte;
   }
 
   /* ========================================================== RECETTES */
@@ -1834,6 +2051,7 @@
     });
 
     el('btn-add-food').addEventListener('click', function () { modaleAjoutAliment(null); });
+    el('btn-mange').addEventListener('click', function () { modaleConsommer(null, '', 0); });
 
     el('stock-list').addEventListener('click', function (e) {
       var b = e.target.closest('[data-act]');
@@ -1845,6 +2063,9 @@
         var nom = nomAliment(etat.stock[i].foodId);
         etat.stock.splice(i, 1);
         sauver(); rafraichir(); toast(nom + ' retiré');
+      } else if (b.getAttribute('data-act') === 'manger') {
+        var ligne = etat.stock[i];
+        modaleConsommer(ligne.foodId, nomAliment(ligne.foodId), ligne.qty);
       } else if (b.getAttribute('data-act') === 'ajuster') {
         modaleAjoutAliment(JSON.parse(JSON.stringify(etat.stock[i])));
         // édition : on supprime l'entrée d'origine à la validation
