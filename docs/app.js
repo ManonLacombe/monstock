@@ -228,8 +228,9 @@
         '<div class="ligne">' +
           '<div class="croissance">' +
             '<strong>' + esc(a ? a.name : l.foodId) + '</strong>' +
-            '<span style="font-size:.82rem;color:var(--gris)">' + fmtQte(l.qty) + ' ' +
-            esc(a ? a.unit : 'g') + ' · ajouté le ' + formaterDate(l.addedAt) + '</span>' +
+            '<span style="font-size:.82rem;color:var(--gris)">' +
+            fmtQuantite(a, l.qty, a ? a.unit : 'g') + ' · ajouté le ' +
+            formaterDate(l.addedAt) + '</span>' +
           '</div>' +
           '<div style="text-align:right">' + puceUrgence(l.expiry) + '</div>' +
         '</div>' +
@@ -666,7 +667,9 @@
         } else if (act === 'retirer-poste') {
           delete composition[n.getAttribute('data-type')];
         } else if (act === 'voir-poste') {
-          ouvrirRecette(n.getAttribute('data-id'));
+          // le bouton ne porte qu'un data-type : c'est la composition
+          // qui fait le lien vers le plat choisi
+          ouvrirRecette(composition[n.getAttribute('data-type')]);
           return;
         }
         sauvegarderComposition();
@@ -1246,6 +1249,7 @@
    */
   function modaleConsommer(foodId, nomLigne, qteLigne) {
     var id = foodId || null;
+    var uniteMange = 'g';
 
     ouvrirModale('J’ai mangé',
       '<div class="champ"><label for="c-recherche">Aliment consommé</label>' +
@@ -1253,8 +1257,15 @@
         '<div class="suggestions" id="c-suggestions"></div></div>' +
       '<div id="c-choisi"></div>' +
       '<div id="c-champs" hidden>' +
-        '<div class="champ"><label for="c-qte">Quantité consommée (g ou ml)</label>' +
-          '<input id="c-qte" type="number" inputmode="decimal" min="0" step="1"></div>' +
+        '<div class="champ">' +
+          '<div class="champ-unite"><label for="c-qte">Quantité consommée</label>' +
+            '<div class="bascule" id="c-bascule" hidden>' +
+              '<button type="button" class="on" data-u="g">grammes</button>' +
+              '<button type="button" data-u="piece">pièces</button>' +
+            '</div></div>' +
+          '<input id="c-qte" type="number" inputmode="decimal" min="0" step="1">' +
+          '<div class="aide" id="c-aide"></div>' +
+        '</div>' +
         '<div class="champ" id="c-restes"></div>' +
         '<button class="btn btn-ghost btn-block" id="c-ajout-stock" hidden></button>' +
         '<button class="btn btn-primary btn-block" id="c-valider">Sortir du stock</button>' +
@@ -1269,53 +1280,79 @@
       var a = id ? aliment(id) : null;
       if (!a) { el('c-choisi').innerHTML = ''; el('c-champs').hidden = true; return; }
       var dispo = stockDe(id);
+      var p = poidsUnite(id);
       el('c-choisi').innerHTML = '<div class="carte" style="padding:10px;margin:10px 0 0;' +
         'box-shadow:none;background:' + (dispo > 0 ? 'var(--vert-clair)' : 'var(--orange-clair)') +
         '"><strong>' + esc(a.name) + '</strong> — ' +
         (dispo > 0
-          ? 'en stock : ' + fmtQte(dispo) + ' ' + esc(a.unit)
+          ? 'en stock : ' + esc(fmtQuantite(a, dispo, a.unit))
           : '<span style="color:var(--orange)">pas dans ton stock</span>') + '</div>';
       el('c-champs').hidden = false;
-      if (!el('c-qte').value) el('c-qte').value = dispo > 0 ? Math.round(dispo) : 100;
+
+      var bascule = el('c-bascule');
+      bascule.hidden = !p;
+      bascule.querySelectorAll('button').forEach(function (b) {
+        b.classList.toggle('on', b.getAttribute('data-u') === (uniteMange === 'piece' ? 'piece' : 'g'));
+      });
+
+      if (!el('c-qte').value) {
+        el('c-qte').value = uniteMange === 'piece' && dispo > 0
+          ? (enPieces(a, dispo) || 1)
+          : (dispo > 0 ? Math.round(dispo) : 100);
+      }
       majRestes();
     }
 
     function majRestes() {
       var a = id ? aliment(id) : null;
       if (!a) return;
-      var q = Math.max(0, Number(el('c-qte').value) || 0);
+      var saisie = Number(el('c-qte').value) || 0;
+      var q = Math.round(enGrammes(a, saisie, uniteMange === 'piece'));
       var dispo = stockDe(id);
       var reste = dispo - q;
+      var p = poidsUnite(id);
       var zone = el('c-restes');
-      var valider = el('c-valider');
+      var bouton = el('c-valider');
+
+      var aide = el('c-aide');
+      if (aide) {
+        if (!p) {
+          aide.textContent = '';
+        } else if (uniteMange === 'piece') {
+          aide.textContent = '1 ' + p.label + ' = ' + p.g + ' g';
+        } else {
+          var n = enPieces(a, q) || 0;
+          aide.textContent = n > 0
+            ? 'Soit environ ' + n + ' ' + (n > 1 ? (p.pluriel || p.label + 's') : p.label)
+            : '';
+        }
+      }
 
       if (dispo <= 0) {
         // Rien à retirer : on ne simule pas, on propose de l'ajouter.
         zone.innerHTML = '<div class="aide" style="color:var(--orange)">' +
           'Cet aliment n’est pas dans ton stock : ajoute-le d’abord pour pouvoir ' +
           'le sortir à la bonne quantité.</div>';
-        el('c-ajout-stock').hidden = false;
-        el('c-ajout-stock').textContent = '+ Ajouter ' + fmtQte(q) + ' ' + a.unit +
-          ' au stock';
-        el('c-ajout-stock').onclick = function () {
-          ouvrirModaleAjoutAvecQuantite(a.id, q);
-        };
-        valider.hidden = true;
+        var ajout = el('c-ajout-stock');
+        ajout.hidden = false;
+        ajout.textContent = '+ Ajouter ' + fmtQuantite(a, q, a.unit) + ' au stock';
+        ajout.onclick = function () { ouvrirModaleAjoutAvecQuantite(a.id, q); };
+        bouton.hidden = true;
         return;
       }
 
       el('c-ajout-stock').hidden = true;
-      valider.hidden = false;
+      bouton.hidden = false;
 
       if (reste > 0) {
-        zone.innerHTML = '<div class="aide">Il restera ' + fmtQte(reste) + ' ' +
-          esc(a.unit) + ' en stock.</div>';
+        zone.innerHTML = '<div class="aide">Il restera ' +
+          esc(fmtQuantite(a, reste, a.unit)) + ' en stock.</div>';
       } else if (reste === 0) {
         zone.innerHTML = '<div class="aide">Le stock de ' + esc(a.name) +
           ' sera entièrement consommé.</div>';
       } else {
         zone.innerHTML = '<div class="aide" style="color:var(--orange)">' +
-          'Tu n’as que ' + fmtQte(dispo) + ' ' + esc(a.unit) +
+          'Tu n’as que ' + esc(fmtQuantite(a, dispo, a.unit)) +
           ' en stock : la ligne sera retirée entièrement.</div>';
       }
     }
@@ -1362,9 +1399,23 @@
     });
     el('c-qte').addEventListener('input', majRestes);
 
+    el('c-bascule').querySelectorAll('button').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var a = id ? aliment(id) : null;
+        if (!a || !a.piece) return;
+        var versPieces = b.getAttribute('data-u') === 'piece';
+        if ((versPieces && uniteMange === 'piece') || (!versPieces && uniteMange === 'g')) return;
+        basculerUnite(el('c-qte'), a, versPieces);
+        uniteMange = versPieces ? 'piece' : 'g';
+        afficher();
+      });
+    });
+
     el('c-valider').addEventListener('click', function () {
       if (!id) { toast('Choisis un aliment'); return; }
-      var q = Math.max(0, Number(el('c-qte').value) || 0);
+      var a = aliment(id);
+      var saisie = Number(el('c-qte').value);
+      var q = Math.round(enGrammes(a, saisie, uniteMange === 'piece'));
       if (q <= 0) { toast('Indique une quantité'); return; }
 
       var restant = q;
@@ -1377,7 +1428,8 @@
       sauver();
       fermerModale();
       rafraichir();
-      toast('-' + fmtQte(q) + ' ' + esc(nomAliment(id)) + ' sorti du stock');
+      toast('–' + fmtQuantite(a, q, a ? a.unit : 'g') + ' de ' +
+        esc(nomAliment(id)));
     });
   }
 
@@ -1431,6 +1483,28 @@
     }
     champ.dispatchEvent(new Event('input', { bubbles: true }));
     champ.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  /**
+ * Exprime une quantité à la pièce quand c'est possible : 300 g d'œufs
+ * deviennent « 6 œufs ». Renvoie null si ce n'est pas un nombre entier
+ * d'unités (250 g d'œufs reste 250 g).
+ */
+  function libelleUnites(a, grammes) {
+    if (!a || !a.piece || !a.piece.g) return null;
+    var n = (Number(grammes) || 0) / a.piece.g;
+    if (n < 0.5) return null;
+    var entier = Math.round(n);
+    if (Math.abs(n - entier) > 0.12) return null;
+    var mot = entier > 1 ? (a.piece.pluriel || (a.piece.label + 's')) : a.piece.label;
+    return entier + ' ' + mot;
+  }
+
+  /** Quantité formatée : « 6 œufs · 300 g » quand c'est possible. */
+  function fmtQuantite(a, grammes, unite) {
+    var base = fmtQte(grammes) + ' ' + (unite || 'g');
+    var p = libelleUnites(a, grammes);
+    return p ? p + ' · ' + base : base;
   }
 
   /* ========================================================== RECETTES */

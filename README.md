@@ -93,21 +93,23 @@ pour les prochaines fois et devient utilisable dans tes recettes.
 **En grammes ou à la pièce** — 33 aliments ont un poids unitaire connu.
 Pour les œufs, les fruits et les légumes, tu peux saisir **3 pièces**
 (3 × 50 g) au lieu de deviner en grammes ; l'app convertit et affiche
-l'équivalence.
+l'équivalence. Le stock s'affiche lui aussi dans l'unité naturelle :
+**6 œufs · 300 g**, **3 pommes · 450 g**. Quand la quantité n'est pas un
+nombre entier d'unités (250 g d'œufs), l'app reste en grammes.
 
 ### 4. « J'ai mangé »
 Pour tout ce qui ne vient pas d'une recette proposée — un morceau de pain,
 une envie de dernière minute, un aperçu que tu as fini.
 
 - **🍽 J'ai mangé** en haut de l'écran *Stock* : cherche l'aliment, indique
-  les grammes, le stock diminue.
+  la quantité — en grammes ou **à la pièce** — et le stock diminue.
 - Le même bouton existe sur **chaque ligne** de ton stock, avec la quantité
   déjà remplie.
 - Les aliments que tu as réellement en stock remontent en premier dans la liste.
 - Si l'aliment n'est pas dans ton stock, l'app ne simule rien : elle propose
   de l'ajouter d'abord, à la bonne quantité.
 
-Restent dans le stock : `400 g → 250 g` après avoir mangé 150 g.
+Manger 2 œufs sur un stock de 6 donne **« 4 œufs · 200 g restants »**.
 Consommer exactement tout retire proprement la ligne.
 
 ### 5. « Tu l'as oublié ? »
