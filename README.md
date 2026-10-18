@@ -50,8 +50,9 @@ Un repas se compose d'**une entrée**, **d'un plat principal**, **d'un fromage**
 et **d'un dessert**. Chaque poste est facultatif (`et/ou`), et c'est **le total**
 qui doit tenir dans le budget d'environ **500 kcal** — pas chaque plat seul.
 
-Un bouton **✨ Proposer un repas dans mon budget** assemble automatiquement
-une proposition qui tient, en privilégiant ce qui va périmer :
+Un bouton **✨ Proposer un repas** assemble automatiquement une proposition
+qui tient, en privilégiant ce qui va périmer. Après avoir retiré un ou
+plusieurs choix, **🔄 Régénérer** repose une proposition complète :
 
 | Poste | Ce qui est proposé |
 |---|---|
@@ -70,7 +71,31 @@ pouvoir composer un repas complet à quatre postes.
 Le second onglet, **📋 Liste de plats**, donne accès à tous les plats
 individuellement, avec les filtres habituels.
 
-### 3. « J'ai mangé »
+### 3. Ajouter un aliment
+
+Deux chemins, selon ce que tu as sous la main :
+
+**📷 Scanner un code-barres** — l'app interroge la base ouverte
+[Open Food Facts](https://world.openfoodfacts.fr) et récupère le nom, les
+calories et le magasin s'ils sont connus. Le poids du conditionnement est
+proposé automatiquement (une barquette de 0,35 kg → 350 g).
+
+Si le produit est **inconnu de la base**, l'app ne laisse pas un écran noir :
+elle affiche le code scanné, explique pourquoi, et propose
+**Ajouter à la main**. On peut aussi **saisir le code à la main** quand
+l'emballage est abîmé.
+
+**À la main** — la recherche couvre le catalogue de 227 aliments et les
+produits que tu as déjà enregistrés. Si le nom n'existe pas,
+**➕ Créer** permet d'ajouter l'aliment avec ses calories : il est gardé
+pour les prochaines fois et devient utilisable dans tes recettes.
+
+**En grammes ou à la pièce** — 33 aliments ont un poids unitaire connu.
+Pour les œufs, les fruits et les légumes, tu peux saisir **3 pièces**
+(3 × 50 g) au lieu de deviner en grammes ; l'app convertit et affiche
+l'équivalence.
+
+### 4. « J'ai mangé »
 Pour tout ce qui ne vient pas d'une recette proposée — un morceau de pain,
 une envie de dernière minute, un aperçu que tu as fini.
 
@@ -85,7 +110,7 @@ une envie de dernière minute, un aperçu que tu as fini.
 Restent dans le stock : `400 g → 250 g` après avoir mangé 150 g.
 Consommer exactement tout retire proprement la ligne.
 
-### 4. « Tu l'as oublié ? »
+### 5. « Tu l'as oublié ? »
 Quand une recette réclame un ingrédient que tu n'as pas noté, l'application
 **te pose la question** au lieu de l'ignorer :
 
@@ -102,27 +127,31 @@ Pour chaque ingrédient manquant, trois réponses :
 C'est la réponse au principal oubli : l'aliment était bien chez toi, mais pas
 dans l'application.
 
-### 5. 🧪 Une découverte par mois
+### 6. 🧪 Une découverte par mois
 Une fois par mois, l'application propose **un aliment que tu n'as jamais goûté**,
 le place **dans un repas complet** (< 500 kcal) et l'ajoute à ta liste de courses.
 Une fois le goût donné :
 
-- 😋 **J'ai aimé** → classé dans tes goûts
-- 😖 **Je n'ai pas aimé** → exclu des propositions
-- 🤷 **Je ne sais pas** → **reproposé une fois** au mois suivant ;
-  s'il n'y a toujours pas d'avis, l'aliment sort du cycle.
+- 😋 **J'ai aimé** → classé dans tes goûts, et **un autre aliment est proposé
+  immédiatement** (tu connais maintenant celui-là)
+- 😖 **Je n'ai pas aimé** → exclu des propositions, et un autre est proposé
+- 🤷 **Je ne sais pas** → **reproposé plus tard**, une seule fois ; s'il n'y a
+  toujours pas d'avis, l'aliment sort définitivement du cycle
 
-### 6. 💚 Mes goûts
+Seuls les aliments jamais notés et absents de ton stock sont proposés : on
+ne te rebAPTise pas un aliment que tu connais déjà.
+
+### 7. 💚 Mes goûts
 La liste de tous les aliments notés : **aimés**, **pas aimés**, **à retester**,
 **à éviter**. Chaque entrée se corrige ou se supprime en un geste.
 Les aliments que tu n'aimes pas sont **exclus** de toutes les recettes.
 
-### 7. 🛒 Liste de courses
+### 8. 🛒 Liste de courses
  Alimentes automatiquement :
 - les ingrédients manquants des recettes que tu ouvres ;
 - l'aliment à goûter du mois.
 
-### 8. ⚙️ Réglages
+### 9. ⚙️ Réglages
 Plafond de calories (200–900), fréquence de la découverte (défaut **30 jours**),
 **export / import** d'une sauvegarde JSON, et effacement complet.
 

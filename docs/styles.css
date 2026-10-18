@@ -287,6 +287,12 @@ input:focus, select:focus, textarea:focus {
 .suggestion:active { background: var(--vert-clair); }
 .suggestion .kcal-mini { color: var(--gris); font-size: .78rem; white-space: nowrap; }
 
+.suggestion-creer {
+  color: var(--vert);
+  font-weight: 600;
+  border-top: 1px solid var(--gris-clair);
+}
+
 .titre-section {
   font-size: .74rem;
   font-weight: 700;
@@ -297,6 +303,35 @@ input:focus, select:focus, textarea:focus {
   border-top: 1px solid var(--gris-clair);
   margin-top: 6px;
 }
+
+/* ------------------------------------------------- bascule g ↔ pièces */
+.champ-unite {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 5px;
+}
+.champ-unite label { margin-bottom: 0; }
+
+.bascule {
+  display: inline-flex;
+  border: 1px solid var(--bord);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--blanc);
+}
+.bascule button {
+  border: 0;
+  background: none;
+  padding: 5px 11px;
+  font-size: .74rem;
+  font-family: inherit;
+  color: var(--gris);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.bascule button.on { background: var(--vert); color: var(--blanc); font-weight: 600; }
 
 /* ------------------------------------------------- COMPOSEUR DE REPAS */
 .budget {

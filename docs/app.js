@@ -274,8 +274,13 @@
       '<div id="m-choisi"></div>' +
       '<div id="m-champs" ' + (f ? '' : 'hidden') + '>' +
         '<div class="champ">' +
-          '<label for="m-qte">Quantité (grammes ou ml)</label>' +
+          '<div class="champ-unite"><label for="m-qte">Quantité</label>' +
+            '<div class="bascule" id="m-bascule" hidden>' +
+              '<button type="button" class="on" data-u="g">grammes</button>' +
+              '<button type="button" data-u="piece">pièces</button>' +
+            '</div></div>' +
           '<input id="m-qte" type="number" inputmode="decimal" min="0" step="1" value="' + valeurQte + '">' +
+          '<div class="aide" id="m-aide-qte"></div>' +
         '</div>' +
         '<div class="champ">' +
           '<label for="m-exp">Date de péremption</label>' +
@@ -300,7 +305,24 @@
     });
 
     rendreSuggestions('');
-    el('m-scanner').addEventListener('click', function () { scannerCodeBarres(produitScanne); });
+    el('m-scanner').addEventListener('click', function () {
+      scannerCodeBarres(function (p) {
+        if (p) produitScanne(p);
+        else modaleAjoutAliment(null);   // produit inconnu : saisie manuelle
+      });
+    });
+    el('m-bascule').querySelectorAll('button').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var a = foodChoisi ? aliment(foodChoisi) : null;
+        if (!a || !a.piece) return;
+        var versPieces = b.getAttribute('data-u') === 'piece';
+        if ((versPieces && uniteCourante === 'piece') || (!versPieces && uniteCourante === 'g')) return;
+        basculerUnite(el('m-qte'), a, versPieces);
+        uniteCourante = versPieces ? 'piece' : 'g';
+        afficherChoisi();
+      });
+    });
+    el('m-qte').addEventListener('input', function () { afficherChoisi(); });
     el('m-valider').addEventListener('click', function () { validerAjout(existant); });
   }
 
@@ -321,24 +343,73 @@
         (NOMS_CAT[a.cat] || '').toLowerCase().indexOf(t) >= 0;
     }).slice(0, 60);
 
-    el('m-suggestions').innerHTML = locaux.length
-      ? locaux.map(function (a) {
-          return '<div class="suggestion" data-food="' + a.id + '">' +
-            '<span>' + esc(a.name) + (a.magasin ? ' <span class="puce puce-neutre">' +
-              esc(a.magasin) + '</span>' : '') + '</span>' +
-            '<span class="kcal-mini">' + (a.kcal || '?') + ' kcal/100' + esc(a.unit) + '</span>' +
-          '</div>';
-        }).join('')
-      : '<div class="suggestion" style="color:var(--gris)">' +
-        'Aucun aliment de ce nom dans le catalogue — utilise le scan.</div>';
+    var html = locaux.map(function (a) {
+      return '<div class="suggestion" data-food="' + a.id + '">' +
+        '<span>' + esc(a.name) + (a.magasin ? ' <span class="puce puce-neutre">' +
+          esc(a.magasin) + '</span>' : '') + '</span>' +
+        '<span class="kcal-mini">' + (a.kcal || '?') + ' kcal/100' + esc(a.unit) + '</span>' +
+      '</div>';
+    }).join('');
+
+    // Rien trouvé : on propose de créer l'aliment à la main, avec ses calories.
+    if (t.length >= 3) {
+      html += '<div class="suggestion suggestion-creer" data-creer="1">' +
+        '<span>➕ Créer « ' + esc(String(terme).trim()) + ' »</span>' +
+        '<span class="kcal-mini">nouveau</span></div>';
+    }
+    if (!html) {
+      html = '<div class="suggestion" style="color:var(--gris)">' +
+        'Aucun aliment de ce nom dans le catalogue.</div>';
+    }
+    el('m-suggestions').innerHTML = html;
 
     Array.prototype.forEach.call(el('m-suggestions').querySelectorAll('[data-food]'), function (n) {
       n.addEventListener('click', function () { choisir(n.getAttribute('data-food')); });
+    });
+    var cr = el('m-suggestions').querySelector('[data-creer]');
+    if (cr) cr.addEventListener('click', function () { creerAliment(String(terme).trim()); });
+  }
+
+  /** Crée un aliment absent du catalogue (produit scanné inconnu, plat maison…). */
+  function creerAliment(nom) {
+    if (!nom) return;
+    ouvrirModale('Nouvel aliment',
+      '<div class="champ"><label>Nom</label>' +
+        '<input id="nc-nom" type="text" value="' + esc(nom) + '"></div>' +
+      '<div class="champ"><label for="nc-kcal">Calories pour 100 g</label>' +
+        '<input id="nc-kcal" type="number" inputmode="decimal" min="0" step="1" placeholder="Ex. 250"></div>' +
+      '<div class="aide">Regarde l’étiquette du produit. Tu pourras corriger ' +
+        'cette valeur plus tard si besoin.</div>' +
+      '<div style="margin-top:14px">' +
+        '<button class="btn btn-primary btn-block" id="nc-valider">Créer et l’ajouter au stock</button></div>');
+
+    el('nc-valider').addEventListener('click', function () {
+      var n = el('nc-nom').value.trim();
+      var k = Math.max(0, Number(el('nc-kcal').value) || 0);
+      if (!n) { toast('Indique un nom'); return; }
+
+      var id = 'perso_' + n.toLowerCase()
+        .normalize ? 'perso_' + n.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+          .replace(/[^a-z0-9]+/g, '_').slice(0, 40)
+        : 'perso_' + n.toLowerCase().replace(/[^a-z0-9]+/g, '_').slice(0, 40);
+      // suffixe si le nom existe déjà avec d'autres calories
+      var base = id, n2 = 2;
+      while (etat.produits[id] && etat.produits[id].name.toLowerCase() === n.toLowerCase()
+             && etat.produits[id].kcal !== k) { id = base + '_' + n2; n2++; }
+
+      etat.produits[id] = {
+        id: id, name: n, cat: 'condiments', kcal: k, unit: 'g',
+        fresh: false, perish: null, perso: true
+      };
+      sauver();
+      ouvrirModaleAjoutAvecQuantite(id, 100);
+      toast('« ' + n + ' » ajouté au catalogue local');
     });
   }
 
   function choisir(id) {
     foodChoisi = id;
+    uniteCourante = 'g';          // on saisit toujours en grammes au départ
     el('m-recherche').value = nomAliment(id);
     el('m-suggestions').innerHTML = '';
     el('m-champs').hidden = false;
@@ -374,7 +445,32 @@
       (a.fresh ? ' · <span class="puce puce-ok">frais</span>' : '') +
       (details.length ? '<div style="font-size:.82rem;color:var(--gris);margin-top:3px">' +
         details.join(' · ') + '</div>' : '') + '</div>';
+
+    // Bascule grammes ↔ pièces quand l'aliment se compte à l'unité
+    var bascule = el('m-bascule');
+    var aide = el('m-aide-qte');
+    var p = poidsUnite(foodChoisi);
+    if (bascule) {
+      bascule.hidden = !p;
+      if (p) {
+        bascule.querySelectorAll('button').forEach(function (b) {
+          b.classList.toggle('on', b.getAttribute('data-u') === (uniteCourante === 'piece' ? 'piece' : 'g'));
+        });
+      }
+    }
+    if (aide) {
+      var enP = uniteCourante === 'piece';
+      if (p) {
+        aide.textContent = enP
+          ? '1 ' + p.label + ' = ' + p.g + ' g'
+          : 'Soit environ ' + (enPieces(a, Number(el('m-qte').value) || 0) || 0) + ' ' + p.label + '(s)';
+      } else {
+        aide.textContent = 'En ' + (a.unit === 'ml' ? 'millilitres' : 'grammes') + '.';
+      }
+    }
   }
+
+  var uniteCourante = 'g';
 
   /** Propose la date de péremption la plus vraisemblable pour un aliment frais. */
   function proposerDate() {
@@ -391,7 +487,9 @@
 
   function validerAjout(existant) {
     if (!foodChoisi) { toast('Choisis d’abord un aliment'); return; }
-    var qte = Number(el('m-qte').value);
+    var a = aliment(foodChoisi);
+    var saisie = Number(el('m-qte').value);
+    var qte = Math.round(enGrammes(a, saisie, uniteCourante === 'piece'));
     if (!qte || qte <= 0) { toast('Indique une quantité'); return; }
     var exp = el('m-exp').value || null;
 
@@ -495,8 +593,11 @@
         'sous ' + budget + ' kcal.</p>' : '') +
     '</div>';
 
-    html += '<button class="btn btn-primary btn-block" id="btn-proposer-repas" style="margin-bottom:12px">' +
-      '✨ Proposer un repas dans mon budget</button>';
+    html += '<div class="actions-manquant" style="margin-bottom:12px">' +
+      '<button class="btn btn-primary" id="btn-proposer-repas">' +
+        '✨ Proposer un repas</button>' +
+      '<button class="btn btn-ghost" id="btn-regen-repas">🔄 Régénérer</button>' +
+    '</div>';
 
     ORDRES_REPAS.forEach(function (type) {
       var r = platChoisi(type);
@@ -549,6 +650,13 @@
       composition = propositionsRepas();
       sauvegarderComposition();
       rafraichir();
+    });
+    var br = el('btn-regen-repas');
+    if (br) br.addEventListener('click', function () {
+      composition = propositionsRepas();
+      sauvegarderComposition();
+      rafraichir();
+      toast('Propositions régénérées');
     });
     zone.querySelectorAll('[data-act]').forEach(function (n) {
       n.addEventListener('click', function () {
@@ -943,7 +1051,7 @@
         '<button class="btn btn-ghost" id="scan-manuel">Saisir le code à la main</button>' +
       '</div>');
 
-    var msg = el('scan-msg');
+    var msg = document.getElementById('scan-msg');
     var video = el('scan-video');
     var arrete = false;
     var dernier = null, repetitions = 0;
@@ -968,26 +1076,50 @@
       if (arrete) return;
       arrete = true;
       arreterCamera();
-      msg.textContent = 'Code ' + code + ' — recherche du produit…';
       chercherParCode(code, function (produit, erreur) {
         if (produit) {
           // le rappel rouvre la fiche d'ajout : pas besoin de fermer ici,
           // et surtout il ne faut pas laisser l'utilisateur sans formulaire
           rappel(produit);
         } else {
-          msg.innerHTML = '<strong style="color:var(--rouge)">' + esc(erreur) + '</strong>' +
-            '<div class="aide">Code scanné : ' + esc(code) + '</div>';
-          brancherReprise();
+          afficherEchecScan(code, erreur);
         }
       });
     }
 
-    function brancherReprise() {
-      var r = el('scan-retry');
-      if (r) r.addEventListener('click', function () {
+    /**
+     * Écran « produit non trouvé ». On reconstruit tout le contenu de la
+     * modale courante : elle a pu être remplacée entre-temps (saisie
+     * manuelle), et un message écrit dans l'ancien écran resterait
+     * invisible — c'est ce qui laissait un écran noir.
+     */
+    function afficherEchecScan(code, erreur) {
+      var corps = el('modal-body');
+      if (!corps) return;
+      corps.innerHTML =
+        '<div class="carte" style="box-shadow:none;background:var(--orange-clair);' +
+        'text-align:center;padding:18px">' +
+        '<div style="font-size:2rem">🔍</div>' +
+        '<strong>Produit non trouvé</strong>' +
+        '<div style="font-size:.85rem;margin-top:6px">' + esc(erreur) + '</div>' +
+        '<div style="font-size:.8rem;color:var(--gris);margin-top:6px">' +
+          'Code scanné : <strong>' + esc(code) + '</strong></div>' +
+        '<div style="font-size:.8rem;color:var(--gris);margin-top:10px">' +
+          'Open Food Facts est une base communautaire : beaucoup de produits ' +
+          'n’y sont pas encore référencés. Tu peux l’ajouter à la main, ' +
+          'l’app le gardera pour les prochaines fois.</div>' +
+        '</div>' +
+        '<div class="actions-manquant">' +
+        '<button class="btn btn-accent" id="scan-manuel2">Ajouter à la main</button>' +
+        '<button class="btn btn-ghost" id="scan-retry">Réessayer</button></div>';
+
+      el('scan-retry').addEventListener('click', function () {
         dernier = null; repetitions = 0;
-        r.remove();
         scannerCodeBarres(rappel);
+      });
+      el('scan-manuel2').addEventListener('click', function () {
+        dernier = null; repetitions = 0;
+        rappel(null);          // rouvre une fiche d'ajout vierge
       });
     }
 
@@ -1255,6 +1387,50 @@
     choisir(foodId);
     var champ = el('m-qte');
     if (champ && qte) champ.value = qte;
+  }
+
+  /* ------------------------------------------------------------ quantités */
+
+  /** Poids d'une unité (un œuf, une pomme, une tranche…), s'il est connu. */
+  function poidsUnite(foodId) {
+    var a = aliment(foodId);
+    return (a && a.piece && typeof a.piece.g === 'number' && a.piece.g > 0) ? a.piece : null;
+  }
+
+  /** Convertit une saisie utilisateur (grammes ou pièces) en grammes. */
+  function enGrammes(a, valeur, enPieces) {
+    var n = Number(valeur);
+    if (!isFinite(n) || n < 0) return 0;
+    return (enPieces && a && a.piece) ? n * a.piece.g : n;
+  }
+
+  /** Convertit des grammes en nombre de pièces (arrondi au dixième). */
+  function enPieces(a, grammes) {
+    if (!a || !a.piece || !a.piece.g) return null;
+    var n = grammes / a.piece.g;
+    return Math.round(n * 10) / 10;
+  }
+
+  /** Bascule g ↔ pièces dans un champ quantité. */
+  function basculerUnite(champ, a, versPieces) {
+    if (!a || !a.piece) return;
+    var brut = String(champ.value).trim();
+    // un champ vide reste vide : on n'invente pas de « 0 »
+    if (brut === '') {
+      uniteCourante = versPieces ? 'piece' : 'g';
+      afficherChoisi();
+      return;
+    }
+    var courant = Number(brut) || 0;
+    if (versPieces) {
+      var n = enPieces(a, courant);
+      if (n === null) return;
+      champ.value = (Math.abs(n - Math.round(n)) < 0.05) ? Math.round(n) : n;
+    } else {
+      champ.value = Math.round(courant * a.piece.g);
+    }
+    champ.dispatchEvent(new Event('input', { bubbles: true }));
+    champ.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
   /* ========================================================== RECETTES */
@@ -1746,11 +1922,20 @@
             var v = b.getAttribute('data-verdict');
             cloturerDecouverte(v);
             fermerModale();
-            rafraichir();
-            var msg = v === 'aime' ? 'Noté : tu aimes !'
-              : v === 'pas_aime' ? 'Noté : tu n’aimes pas'
-              : 'On te le reproposera au prochain mois';
-            toast(msg);
+
+            if (v === 'retester') {
+              // « je ne sais pas » : cet aliment sera reproposé plus tard
+              rafraichir();
+              toast('On te le reproposera au prochain mois');
+            } else {
+              // Le goût est noté : cet aliment est désormais « connu ».
+              // On en propose immédiatement un autre, comme demandé.
+              var suivant = proposerDecouverte();
+              rafraichir();
+              toast(suivant
+                ? (v === 'aime' ? 'Noté ! Nouvel aliment proposé' : 'Noté ! Autre aliment proposé')
+                : (v === 'aime' ? 'Noté : tu aimes' : 'Noté : tu n’aimes pas'));
+            }
           });
         });
       });
