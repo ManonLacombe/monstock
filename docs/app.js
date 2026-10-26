@@ -1551,19 +1551,22 @@
       var dispo = stock[i.id] || 0;
       if (dispo >= i.q) {
         couverts++;
-        score += 10;
+        score += 25;
         // Prime forte pour un aliment frais qui va périmer.
         var pire = plusUrgentDe(i.id);
         if (pire !== null) {
-          if (pire <= 2) { score += 30; urgents++; }
-          else if (pire <= 5) { score += 18; urgents++; }
-          else if (a && a.fresh) score += 8;
+          if (pire <= 2) { score += 35; urgents++; }
+          else if (pire <= 5) { score += 22; urgents++; }
+          else if (a && a.fresh) score += 10;
         }
       } else {
-        score -= 10;
+        score -= 15;
         manquants.push(i);
       }
     });
+
+    // Bonus si la recette est 100 % couverte par le stock (encourage à cuisiner avec ce qu'on a)
+    if (manquants.length === 0 && r.ing.length > 0) score += 60;
 
     // Un petit biais vers les repas rapides
     score += Math.max(0, 40 - r.time) / 10;

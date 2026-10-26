@@ -75,6 +75,9 @@ body { padding-bottom: calc(var(--hauteur-nav) + env(safe-area-inset-bottom)); }
 
 .screen { display: none; }
 .screen.is-active { display: block; animation: apparait .18s ease-out; }
+/* Espace en bas pour que les derniers contenus ne passent pas sous les touches Android */
+.screen { padding-bottom: calc(var(--hauteur-nav) + 20px + env(safe-area-inset-bottom)); }
+.row-actions { margin-bottom: 18px; }
 
 @keyframes apparait {
   from { opacity: 0; transform: translateY(6px); }
