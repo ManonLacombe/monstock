@@ -1,15 +1,12 @@
 /* Service worker — MonStock
  *
- * Stratégie :
- *  - navigation (le HTML) : réseau d'abord, cache en secours → l'application
- *    se met à jour dès qu'il y a du réseau, et reste utilisable hors ligne ;
- *  - ressources statiques : « stale-while-revalidate » → réponse immédiate
- *    depuis le cache, rafraîchissement en arrière-plan.
- *
- * Un cache « cache-first » sur tout empêcherait l'application de se mettre
- * à jour une fois installée : à ne pas faire.
+ * Stratégie : le réseau d'abord pour tout, le cache uniquement en secours.
+ * Le HTML, le CSS et le JavaScript changent à chaque version : les servir
+ * depuis le cache donnait l'impression que les correctifs n'arrivaient
+ * jamais. Hors ligne, tout reste disponible grâce au cache.
  */
-var VERSION = 'monstock-v1';
+
+var VERSION = 'monstock-v2';
 var CACHE = 'monstock-' + VERSION;
 var FICHIERS = [
   './',
@@ -28,7 +25,7 @@ self.addEventListener('install', function (e) {
   e.waitUntil(
     caches.open(CACHE)
       .then(function (c) { return c.addAll(FICHIERS); })
-      // active immédiatement : pas d'attente de fermeture de toutes les onglets
+      // active immédiatement : pas d'attente de fermeture de tous les onglets
       .then(function () { return self.skipWaiting(); })
   );
 });
@@ -43,21 +40,16 @@ self.addEventListener('activate', function (e) {
   );
 });
 
-function depuisCache(demande) {
-  return caches.match(demande).then(function (r) {
-    var copie = r && r.clone();
-    var rafraichir = fetch(demande).then(function (reponse) {
-      if (reponse && reponse.status === 200 && reponse.type === 'basic') {
-        caches.open(CACHE).then(function (c) { c.put(demande, reponse.clone()); });
-      }
-      return reponse;
-    }).catch(function () { return copie; });
-    return copie || rafraichir;
-  });
-}
-
+/**
+ * Réseau d'abord, cache en secours.
+ *
+ * `cache: 'no-cache'` force la revalidation auprès du serveur : GitHub Pages
+ * pose un cache HTTP de dix minutes qui suffisait à masquer un déploiement
+ * frais. Une réponse 304 est immédiate, donc cela ne coûte presque rien.
+ */
 function reseauDAbord(demande) {
-  return fetch(demande).then(function (reponse) {
+  var options = { cache: 'no-cache' };
+  return fetch(demande, options).then(function (reponse) {
     if (reponse && reponse.status === 200 && reponse.type === 'basic') {
       var copie = reponse.clone();
       caches.open(CACHE).then(function (c) { c.put(demande, copie); });
@@ -65,7 +57,9 @@ function reseauDAbord(demande) {
     return reponse;
   }).catch(function () {
     return caches.match(demande).then(function (r) {
-      return r || caches.match('./index.html');
+      if (r) return r;
+      if (demande.mode === 'navigate') return caches.match('./index.html');
+      return Response.error();
     });
   });
 }
@@ -76,9 +70,5 @@ self.addEventListener('fetch', function (e) {
   var url = new URL(e.request.url);
   if (url.origin !== self.location.origin) return;
 
-  if (e.request.mode === 'navigate' || e.request.destination === 'document') {
-    e.respondWith(reseauDAbord(e.request));
-  } else {
-    e.respondWith(depuisCache(e.request));
-  }
+  e.respondWith(reseauDAbord(e.request));
 });

@@ -7,6 +7,10 @@
 
   var CLE = 'monstock.v1';
 
+  /* Version affichée dans les réglages : elle permet de vérifier d'un coup
+     d'œil qu'une mise à jour de l'APK a bien été installée. */
+  var VERSION = '1.7.0';
+
   /* ------------------------------------------------------------------ utils */
 
   function el(id) { return document.getElementById(id); }
@@ -520,6 +524,7 @@
   };
 
   var composition = {};     // type -> id du plat retenu (vide = non choisi)
+  var tourRepas = 0;        // avance à chaque « Régénérer » pour varier
 
   function chargerComposition() {
     composition = (etat.repas && typeof etat.repas === 'object') ? etat.repas : {};
@@ -547,25 +552,70 @@
     return Math.round(total);
   }
 
-  /** Place les plats les plus prioritaires (péremption) sans dépasser le budget. */
-  function propositionsRepas() {
+  /**
+   * Compose un repas complet avec le stock disponible.
+   *
+   * Priorité au stock : on ne retient que les recettes qu'on peut réellement
+   * cuisiner (classerPourStock), et on réserve de la place pour les autres
+   * postes. Un plat de 485 kcal est « complet » mais ne laisse rien pour
+   * l'entrée ni le dessert : on cherche donc d'abord un plat qui tient dans
+   * 60 % du budget, puis 75 %, et seulement en dernier recours n'importe
+   * quel plat qui rentre.
+   */
+  function propositionsRepas(variante) {
     var budget = etat.reglages.kcalMax;
+    var tour = variante || 0;
     var parType = {};
     ORDRES_REPAS.forEach(function (t) {
-      parType[t] = platsDeType(t).sort(function (a, b) { return b.score - a.score; });
+      parType[t] = platsDeType(t).sort(classerPourStock);
     });
 
-    // On part du plat principal, puis on complète tant qu'il reste de la place.
+    // `tour` permet de régénérer : on décale le choix parmi les cinq
+    // meilleures possibilités qui tiennent dans le budget, au lieu de
+    // recalculer exactement la même proposition.
+    function dansBudget(type, plafond) {
+      return (parType[type] || [])
+        .filter(function (a) { return a.kcal <= plafond; })
+        .slice(0, 5);
+    }
+
+    function meilleur(type, plafond) {
+      var pool = dansBudget(type, plafond);
+      return pool.length ? pool[tour % pool.length] : null;
+    }
+
+    /** Comme `meilleur`, mais ne retient que les recettes 100 % en stock. */
+    function meilleurComplet(type, plafond) {
+      var pool = dansBudget(type, plafond).filter(function (a) {
+        return a.nbManquants === 0;
+      });
+      return pool.length ? pool[tour % pool.length] : null;
+    }
+
     var choix = {};
     var reste = budget;
-    ['plat', 'entree', 'fromage', 'dessert'].forEach(function (type) {
-      var pool = parType[type];
-      var meilleur = null;
-      for (var i = 0; i < pool.length; i++) {
-        if (pool[i].kcal <= reste) { meilleur = pool[i]; break; }
-      }
-      if (meilleur) { choix[type] = meilleur.recette.id; reste -= meilleur.kcal; }
+
+    // La couverture par le stock passe avant tout : un plat complet à 358 kcal
+    // vaut mieux qu'un plat à 262 kcal auquel il manque deux ingrédients.
+    // À couverture égale, on préfère celui qui laisse de la place aux autres
+    // postes (60 %, puis 75 %, puis le budget entier).
+    var plat =
+      meilleurComplet('plat', budget * 0.6) ||
+      meilleurComplet('plat', budget * 0.75) ||
+      meilleurComplet('plat', budget) ||
+      meilleur('plat', budget * 0.6) ||
+      meilleur('plat', budget * 0.75) ||
+      meilleur('plat', budget);
+    if (plat) { choix.plat = plat.recette.id; reste -= plat.kcal; }
+
+    // Les autres postes ne sont proposés que s'ils sont entièrement couverts :
+    // mieux vaut un poste vide (avec des suggestions cliquables) qu'une entrée
+    // à laquelle il manque trois ingrédients.
+    ['entree', 'fromage', 'dessert'].forEach(function (type) {
+      var m = meilleurComplet(type, reste);
+      if (m) { choix[type] = m.recette.id; reste -= m.kcal; }
     });
+
     return choix;
   }
 
@@ -624,7 +674,7 @@
         // On ne propose que ce qui tient encore dans le budget
         var candidats = platsDeType(type)
           .filter(function (a) { return a.kcal <= reste || total === 0; })
-          .sort(function (a, b) { return b.score - a.score; })
+          .sort(classerPourStock)
           .slice(0, 4);
         html += '<div class="poste-vide">';
         if (!candidats.length) {
@@ -632,11 +682,18 @@
             (total === 0 ? 'Aucun plat de ce type.' : 'Plus de place dans le budget.') +
             '</span>';
         } else {
+          if (candidats[0].nbManquants > 0) {
+            html += '<div class="aide" style="margin:0 0 7px">' +
+              'Aucune recette complète avec ton stock : voici les plus proches.</div>';
+          }
           html += candidats.map(function (a) {
             return '<button class="choix-poste" data-act="prendre-poste" ' +
               'data-type="' + type + '" data-id="' + a.recette.id + '">' +
               '<span>' + esc(a.recette.name) + '</span>' +
-              '<span class="kcal-mini">' + a.kcal + ' kcal</span></button>';
+              '<span class="kcal-mini">' +
+                (a.nbManquants === 0
+                  ? '<b style="color:var(--vert)" title="Tous les ingrédients sont en stock">✓</b> '
+                  : '') + a.kcal + ' kcal</span></button>';
           }).join('');
         }
         html += '</div>';
@@ -648,13 +705,14 @@
 
     var b = el('btn-proposer-repas');
     if (b) b.addEventListener('click', function () {
-      composition = propositionsRepas();
+      composition = propositionsRepas(tourRepas);
       sauvegarderComposition();
       rafraichir();
     });
     var br = el('btn-regen-repas');
     if (br) br.addEventListener('click', function () {
-      composition = propositionsRepas();
+      tourRepas++;
+      composition = propositionsRepas(tourRepas);
       sauvegarderComposition();
       rafraichir();
       toast('Propositions régénérées');
@@ -1585,6 +1643,21 @@
     };
   }
 
+  /**
+   * Ordre de priorité des propositions : d'abord ce que tu peux réellement
+   * cuisiner avec ton stock (aucun ingrédient manquant), puis la recette qui
+   * en manque le moins, et seulement ensuite le score (péremption, goûts).
+   * Une recette « urgente » mais incomplète ne doit pas passer devant une
+   * recette complète : tu ne pourrais pas la cuisiner.
+   */
+  function classerPourStock(a, b) {
+    if (a.nbManquants !== b.nbManquants) return a.nbManquants - b.nbManquants;
+    // À manques égaux, celle qui est la plus couverte passe devant :
+    // 3 ingrédients sur 4 est plus proche du repas qu'un aliment seul absent.
+    if (a.nbCouverts !== b.nbCouverts) return b.nbCouverts - a.nbCouverts;
+    return b.score - a.score;
+  }
+
   /** Nombre de jours restants du plus périmé d'un aliment en stock. */
   function plusUrgentDe(foodId) {
     var pire = null;
@@ -1643,7 +1716,7 @@
       analyses = analyses.filter(function (a) { return a.recette.perso; });
     }
 
-    analyses.sort(function (a, b) { return b.score - a.score; });
+    analyses.sort(classerPourStock);
 
     var f = el('recipe-filters');
     var defs = [
@@ -2212,7 +2285,9 @@
         '<button class="btn btn-ghost" id="r-import">Importer</button>' +
         '<button class="btn btn-danger" id="r-reset">Tout effacer</button>' +
       '</div>' +
-      '<input type="file" id="r-fichier" accept="application/json" hidden>');
+      '<input type="file" id="r-fichier" accept="application/json" hidden>' +
+      '<p style="text-align:center;font-size:.78rem;color:var(--gris);margin:18px 0 0">' +
+        'MonStock ' + VERSION + '</p>');
 
     el('r-valider').addEventListener('click', function () {
       etat.reglages.kcalMax = Math.min(900, Math.max(200, Number(el('r-kcal').value) || 500));
